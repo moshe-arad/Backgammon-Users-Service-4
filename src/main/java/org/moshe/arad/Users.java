@@ -6,11 +6,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import org.moshe.arad.entities.BackgammonUser;
+import org.moshe.arad.kafka.ConsumerToProducerJob;
 import org.moshe.arad.kafka.consumers.CreateNewUserCommandConsumer;
+import org.moshe.arad.kafka.events.NewUserCreatedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 
@@ -18,33 +22,35 @@ import org.springframework.stereotype.Service;
 public class Users {
 
 	private ApplicationContext context;
-	private List<CreateNewUserCommandConsumer> createNewUserCommandConsumer = new ArrayList<>(CONSUMERS_NUM);
 	private Map<String,BackgammonUser> users = new HashMap<>(1000);
-	private ExecutorService createNewUserCommandConsumersPool = Executors.newFixedThreadPool(CONSUMERS_NUM);
-	private static final int CONSUMERS_NUM = 6;
+	
+	@Autowired
+	private CreateNewUserCommandConsumer createNewUserCommandConsumer;
+	
+	private static final int CONSUMERS_NUM = 3;
+//	private List<CreateNewUserCommandConsumer> createNewUserCommandConsumer = new ArrayList<>(CONSUMERS_NUM);
+//	private ExecutorService createNewUserCommandConsumersPool = Executors.newFixedThreadPool(CONSUMERS_NUM);
+	
+	private static final int PRODUCERS_NUM = 3;
+	private ScheduledThreadPoolExecutor newUserCreatedEventProducersPool = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(PRODUCERS_NUM);
+	private List<ConsumerToProducerJob> consumerToProducerJobs = new ArrayList<>(PRODUCERS_NUM);
+	
 	private Logger logger = LoggerFactory.getLogger(Users.class);
 	
 	public Users() {
 	}
 	
 	public void acceptNewUsers(){
-		for(int i=0; i<CONSUMERS_NUM; i++){
-			createNewUserCommandConsumer.add(context.getBean(CreateNewUserCommandConsumer.class));
-			createNewUserCommandConsumer.get(i).setUsers(users);
-		}
-		
 		logger.info("Accept new users... start");
-		try {
-			createNewUserCommandConsumersPool.invokeAll(createNewUserCommandConsumer);
-		} catch (InterruptedException e) {
-			logger.error("Failed to start Create New User Command Consumers Pool.");
-			e.printStackTrace();
-		}
+		createNewUserCommandConsumer.executeConsumers(CONSUMERS_NUM);
 		logger.info("Accept new users... end");
+		
+		logger.info("Start consumer to producer jobs...");
 	}
 	
 	public void shutdown(){
-		createNewUserCommandConsumersPool.shutdown();
+		createNewUserCommandConsumer.setRunning(false);
+		createNewUserCommandConsumer.getScheduledExecutor().shutdown();
 	}
 
 	public ApplicationContext getContext() {

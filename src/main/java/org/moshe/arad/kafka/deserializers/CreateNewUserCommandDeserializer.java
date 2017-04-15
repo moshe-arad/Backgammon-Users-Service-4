@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.moshe.arad.Location;
 import org.moshe.arad.entities.BackgammonUser;
 import org.moshe.arad.kafka.commands.CreateNewUserCommand;
 
@@ -41,7 +42,7 @@ public class CreateNewUserCommandDeserializer implements Deserializer<CreateNewU
             String email = DeserializeString(buf);       
             
             return new CreateNewUserCommand(
-            		new BackgammonUser(userName, password, null, firstName, lastName, email, null, null, null, null));            		           
+            		new BackgammonUser(userName, password, firstName, lastName, email, Location.Lobby));            		           
             
         } catch (Exception e) {
             throw new SerializationException("Error when deserializing byte[] to CreateNewUserCommand");

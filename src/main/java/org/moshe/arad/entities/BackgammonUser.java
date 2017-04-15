@@ -1,45 +1,84 @@
 package org.moshe.arad.entities;
 
-import java.util.Date;
+import org.moshe.arad.Location;
 
 public class BackgammonUser {
 
-	private Long userId;
 	private String userName;
 	private String password;
-	private Boolean enabled;
 	private String firstName;
 	private String lastName;
 	private String email;
-	private Date lastModifiedDate;
-	private String lastModifiedBy;
-	private Date createdDate;
-	private String createdBy;
+	private Location location;
 
 	public BackgammonUser() {
 	}
 	
-	public BackgammonUser(String userName, String password, Boolean enabled, String firstName, String lastName,
-			String email, Date lastModifiedDate, String lastModifiedBy, Date createdDate, String createdBy) {
-		super();
+	public BackgammonUser(String userName, String password, String firstName, String lastName, String email, Location location) {
 		this.userName = userName;
 		this.password = password;
-		this.enabled = enabled;
 		this.firstName = firstName;
 		this.lastName = lastName;
 		this.email = email;
-		this.lastModifiedDate = lastModifiedDate;
-		this.lastModifiedBy = lastModifiedBy;
-		this.createdDate = createdDate;
-		this.createdBy = createdBy;
+		this.location = location; 
+	}
+	
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((email == null) ? 0 : email.hashCode());
+		result = prime * result + ((firstName == null) ? 0 : firstName.hashCode());
+		result = prime * result + ((lastName == null) ? 0 : lastName.hashCode());
+		result = prime * result + ((location == null) ? 0 : location.hashCode());
+		result = prime * result + ((password == null) ? 0 : password.hashCode());
+		result = prime * result + ((userName == null) ? 0 : userName.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		BackgammonUser other = (BackgammonUser) obj;
+		if (email == null) {
+			if (other.email != null)
+				return false;
+		} else if (!email.equals(other.email))
+			return false;
+		if (firstName == null) {
+			if (other.firstName != null)
+				return false;
+		} else if (!firstName.equals(other.firstName))
+			return false;
+		if (lastName == null) {
+			if (other.lastName != null)
+				return false;
+		} else if (!lastName.equals(other.lastName))
+			return false;
+		if (location != other.location)
+			return false;
+		if (password == null) {
+			if (other.password != null)
+				return false;
+		} else if (!password.equals(other.password))
+			return false;
+		if (userName == null) {
+			if (other.userName != null)
+				return false;
+		} else if (!userName.equals(other.userName))
+			return false;
+		return true;
 	}
 
 	@Override
 	public String toString() {
-		return "BackgammonUser [userName=" + userName + ", password=" + password + ", enabled=" + enabled
-				+ ", firstName=" + firstName + ", lastName=" + lastName + ", email=" + email + ", lastModifiedDate="
-				+ lastModifiedDate + ", lastModifiedBy=" + lastModifiedBy + ", createDate=" + createdDate
-				+ ", createdBy=" + createdBy + "]";
+		return "BackgammonUser [userName=" + userName + ", password=" + password + ", firstName=" + firstName
+				+ ", lastName=" + lastName + ", email=" + email + ", location=" + location + "]";
 	}
 
 	public String getUserName() {
@@ -56,14 +95,6 @@ public class BackgammonUser {
 
 	public void setPassword(String password) {
 		this.password = password;
-	}
-
-	public Boolean getEnabled() {
-		return enabled;
-	}
-
-	public void setEnabled(Boolean enabled) {
-		this.enabled = enabled;
 	}
 
 	public String getFirstName() {
@@ -89,36 +120,12 @@ public class BackgammonUser {
 	public void setEmail(String email) {
 		this.email = email;
 	}
-	
-	public Date getLastModifiedDate() {
-		return lastModifiedDate;
+
+	public Location getLocation() {
+		return location;
 	}
 
-	public void setLastModifiedDate(Date lastModifiedDate) {
-		this.lastModifiedDate = lastModifiedDate;
-	}
-
-	public String getLastModifiedBy() {
-		return lastModifiedBy;
-	}
-
-	public void setLastModifiedBy(String lastModifiedBy) {
-		this.lastModifiedBy = lastModifiedBy;
-	}
-
-	public Date getCreatedDate() {
-		return createdDate;
-	}
-
-	public void setCreatedDate(Date createDate) {
-		this.createdDate = createDate;
-	}
-
-	public String getCreatedBy() {
-		return createdBy;
-	}
-
-	public void setCreatedBy(String createdBy) {
-		this.createdBy = createdBy;
-	}
+	public void setLocation(Location location) {
+		this.location = location;
+	}	
 }
