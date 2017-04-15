@@ -18,11 +18,10 @@ import org.springframework.web.context.annotation.RequestScope;
 
 @SpringBootApplication
 @RestController
-public class Application implements ApplicationRunner, ApplicationContextAware {
+public class Application implements ApplicationRunner {
 
 	@Autowired
 	private Users users;
-	private ApplicationContext context;
 	private Logger logger = LoggerFactory.getLogger(Application.class);
 	
 	
@@ -33,7 +32,6 @@ public class Application implements ApplicationRunner, ApplicationContextAware {
 
 	@Override
 	public void run(ApplicationArguments arg0) throws Exception {
-		users.setContext(context);
 		users.acceptNewUsers();
 	}
 	
@@ -50,10 +48,5 @@ public class Application implements ApplicationRunner, ApplicationContextAware {
 			return new ResponseEntity<String>("", HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 		
-	}
-
-	@Override
-	public void setApplicationContext(ApplicationContext context) throws BeansException {
-		this.context = context;
 	}
 }

@@ -3,7 +3,6 @@ package org.moshe.arad.kafka.consumers;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -22,14 +21,13 @@ import org.moshe.arad.kafka.events.Events;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 @Component
-public class CreateNewUserCommandConsumer {
+public class CreateNewUserCommandConsumer implements Runnable {
 
 	Logger logger = LoggerFactory.getLogger(CreateNewUserCommandConsumer.class);
-	
+	private static final int CONSUMERS_NUM = 3;
 	private Properties properties;
 	private Map<String,BackgammonUser> users;
 	private Consumer<String, CreateNewUserCommand> consumer;
@@ -60,9 +58,19 @@ public class CreateNewUserCommandConsumer {
 		consumer = new KafkaConsumer<>(properties);
 	}
 
-	public void executeConsumers(int numConsumers){
+	private void executeConsumers(int numConsumers, String topicName){
 		
 		while(scheduledExecutor.getQueue().size() < numConsumers){
+			
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			
+			if(scheduledExecutor.getActiveCount() == numConsumers) continue;
+			
 			logger.info("Threads in pool's queue before schedule = " + scheduledExecutor.getQueue().size());
 			scheduledExecutor.scheduleAtFixedRate( () -> {
 				consumer.subscribe(Arrays.asList(topicName));
@@ -84,6 +92,11 @@ public class CreateNewUserCommandConsumer {
 		}
 	}
 	
+	@Override
+	public void run() {
+		this.executeConsumers(CONSUMERS_NUM, KafkaUtils.COMMANDS_TO_USERS_SERVICE_TOPIC);
+	}
+	
 	public Map<String, BackgammonUser> getUsers() {
 		return users;
 	}
@@ -102,7 +115,7 @@ public class CreateNewUserCommandConsumer {
 	
 	public ScheduledThreadPoolExecutor getScheduledExecutor() {
 		return scheduledExecutor;
-	}
+	}	
 }
 
 
