@@ -54,6 +54,7 @@ public class SimpleProducer implements Runnable{
 			
 			if(scheduledExecutor.getActiveCount() == numJobs) continue;
 			
+			logger.info("Threads in pool's queue before schedule = " + scheduledExecutor.getQueue().size());
 			scheduledExecutor.scheduleAtFixedRate(() -> {
 				while(isRunning){
 					try {
@@ -65,6 +66,7 @@ public class SimpleProducer implements Runnable{
 					}
 				}
 			}, 0, 500, TimeUnit.MILLISECONDS);
+			logger.info("Threads in pool's queue after schedule = " + scheduledExecutor.getQueue().size());
 		}
 	}
 

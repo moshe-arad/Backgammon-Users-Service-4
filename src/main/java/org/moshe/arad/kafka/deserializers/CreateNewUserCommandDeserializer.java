@@ -6,8 +6,8 @@ import java.util.Map;
 
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
-import org.moshe.arad.Location;
 import org.moshe.arad.entities.BackgammonUser;
+import org.moshe.arad.entities.Location;
 import org.moshe.arad.kafka.commands.CreateNewUserCommand;
 
 public class CreateNewUserCommandDeserializer implements Deserializer<CreateNewUserCommand>{

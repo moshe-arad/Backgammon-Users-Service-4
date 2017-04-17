@@ -1,7 +1,5 @@
 package org.moshe.arad.entities;
 
-import org.moshe.arad.Location;
-
 public class BackgammonUser {
 
 	private String userName;

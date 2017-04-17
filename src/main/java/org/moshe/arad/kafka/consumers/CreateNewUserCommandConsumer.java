@@ -1,6 +1,7 @@
 package org.moshe.arad.kafka.consumers;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executors;
@@ -29,9 +30,8 @@ public class CreateNewUserCommandConsumer implements Runnable {
 	Logger logger = LoggerFactory.getLogger(CreateNewUserCommandConsumer.class);
 	private static final int CONSUMERS_NUM = 3;
 	private Properties properties;
-	private Map<String,BackgammonUser> users;
+	private Map<String,BackgammonUser> users = new HashMap<>(10000);
 	private Consumer<String, CreateNewUserCommand> consumer;
-	private String topicName;
 	private boolean isRunning = true;
 	private ScheduledThreadPoolExecutor scheduledExecutor = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(6);
 	
@@ -54,7 +54,6 @@ public class CreateNewUserCommandConsumer implements Runnable {
 		properties.put("key.deserializer", KafkaUtils.KEY_STRING_DESERIALIZER);
 		properties.put("value.deserializer", customValueDeserializer);
 		this.users = users;
-		this.topicName = topicName;
 		consumer = new KafkaConsumer<>(properties);
 	}
 
