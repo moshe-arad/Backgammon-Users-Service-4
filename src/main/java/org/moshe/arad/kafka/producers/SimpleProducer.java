@@ -59,7 +59,7 @@ public class SimpleProducer implements Runnable{
 				while(isRunning){
 					try {
 						NewUserCreatedEvent newUserCreatedEvent = (NewUserCreatedEvent) consumerToProducerQueue.getEventsQueue().take();
-						sendKafkaMessage("NewUserCreatedEvent", newUserCreatedEvent);
+						sendKafkaMessage(KafkaUtils.NEW_USER_CREATED_EVENT_TOPIC, newUserCreatedEvent);
 					} catch (InterruptedException e) {
 						logger.error("Failed to grab new user created event from queue.");
 						e.printStackTrace();

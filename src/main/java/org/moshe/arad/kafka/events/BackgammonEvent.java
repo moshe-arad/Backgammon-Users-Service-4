@@ -26,6 +26,20 @@ public abstract class BackgammonEvent {
 		this.eventType = eventType;
 		this.arrived = new Date();
 	}
+	
+	
+
+	public BackgammonEvent(int serviceId, String serviceName, int entityId, String entityType, int eventId,
+			String eventType, Date arrived) {
+		this.serviceId = serviceId;
+		this.serviceName = serviceName;
+		this.entityId = entityId;
+		this.entityType = entityType;
+		this.eventId = eventId;
+		this.eventType = eventType;
+		this.arrived = arrived;
+		this.departed = departed;
+	}
 
 	@Override
 	public String toString() {

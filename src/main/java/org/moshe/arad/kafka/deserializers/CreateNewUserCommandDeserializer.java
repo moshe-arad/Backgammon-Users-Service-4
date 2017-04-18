@@ -35,11 +35,11 @@ public class CreateNewUserCommandDeserializer implements Deserializer<CreateNewU
             
             ByteBuffer buf = ByteBuffer.wrap(data);         
          
-            String userName = DeserializeString(buf);
-            String password = DeserializeString(buf);
-            String firstName = DeserializeString(buf);
-            String lastName = DeserializeString(buf);
-            String email = DeserializeString(buf);       
+            String userName = deserializeString(buf);
+            String password = deserializeString(buf);
+            String firstName = deserializeString(buf);
+            String lastName = deserializeString(buf);
+            String email = deserializeString(buf);       
             
             return new CreateNewUserCommand(
             		new BackgammonUser(userName, password, firstName, lastName, email, Location.Lobby));            		           
@@ -49,12 +49,12 @@ public class CreateNewUserCommandDeserializer implements Deserializer<CreateNewU
         }
 	}
 
-	private String DeserializeString(ByteBuffer buf) throws UnsupportedEncodingException {
-		int sizeOfUserName = buf.getInt();
-		byte[] nameBytes = new byte[sizeOfUserName];
+	private String deserializeString(ByteBuffer buf) throws UnsupportedEncodingException {
+		int sizeOfStringDeserialize = buf.getInt();
+		byte[] nameBytes = new byte[sizeOfStringDeserialize];
 		buf.get(nameBytes);
-		String deserializedUserName = new String(nameBytes, encoding);
-		return deserializedUserName;
+		String deserializedString = new String(nameBytes, encoding);
+		return deserializedString;
 	}
 
 }

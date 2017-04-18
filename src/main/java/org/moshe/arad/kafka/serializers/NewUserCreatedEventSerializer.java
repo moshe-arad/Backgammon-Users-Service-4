@@ -39,6 +39,7 @@ public class NewUserCreatedEventSerializer implements Serializer<NewUserCreatedE
 		int sizeOfLocation;
 		
 		
+		
 		 try {
 			 if (event == null)
 				 return null;
@@ -59,9 +60,11 @@ public class NewUserCreatedEventSerializer implements Serializer<NewUserCreatedE
 			 sizeOfEmail = event.getBackgammonUser().getEmail().length();	
 			 
 			 serializedLocation = event.getBackgammonUser().getLocation().name().getBytes(encoding);
-			 sizeOfLocation = event.getBackgammonUser().getLocation().name().length();	
+			 sizeOfLocation = event.getBackgammonUser().getLocation().name().length();
 			 
-			 ByteBuffer buf = ByteBuffer.allocate(sizeOfUserName+4+sizeOfPassword+4+sizeOfFirstName+4+sizeOfLastName+4+sizeOfEmail+4+sizeOfLocation+4);
+			 long time = event.getArrived().getTime();	
+			 
+			 ByteBuffer buf = ByteBuffer.allocate(sizeOfUserName+4+sizeOfPassword+4+sizeOfFirstName+4+sizeOfLastName+4+sizeOfEmail+4+sizeOfLocation+4+8);
 			 buf.putInt(sizeOfUserName);
 			 buf.put(serializedUserName);        
             
@@ -79,6 +82,8 @@ public class NewUserCreatedEventSerializer implements Serializer<NewUserCreatedE
              
              buf.putInt(sizeOfLocation);
              buf.put(serializedLocation);
+             
+             buf.putLong(time);
              
 	         return buf.array();
 

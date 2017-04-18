@@ -9,4 +9,5 @@ public class KafkaUtils {
 	public static final String CREATE_NEW_USER_COMMAND_DESERIALIZER = "org.moshe.arad.kafka.deserializers.CreateNewUserCommandDeserializer";
 	public static final String NEW_USER_CREATED_EVENT_SERIALIZER = "org.moshe.arad.kafka.serializers.NewUserCreatedEventSerializer";
 	public static final String COMMANDS_TO_USERS_SERVICE_TOPIC = "Commands-To-Users-Service";
+	public static final String NEW_USER_CREATED_EVENT_TOPIC = "NewUserCreatedEvent";
 }
