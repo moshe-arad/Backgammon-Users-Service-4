@@ -70,7 +70,7 @@ public class CreateNewUserCommandConsumer implements Runnable {
 			
 			if(scheduledExecutor.getActiveCount() == numConsumers) continue;
 			
-			logger.info("Threads in pool's queue before schedule = " + scheduledExecutor.getQueue().size());
+//			logger.info("Threads in pool's queue before schedule = " + scheduledExecutor.getQueue().size());
 			scheduledExecutor.scheduleAtFixedRate( () -> {
 				consumer.subscribe(Arrays.asList(topicName));
 	    		
@@ -87,7 +87,7 @@ public class CreateNewUserCommandConsumer implements Runnable {
 		        consumer.close();
 		        
 			} , 0, 100, TimeUnit.MILLISECONDS);
-			logger.info("Threads in pool's queue after schedule = " + scheduledExecutor.getQueue().size());
+//			logger.info("Threads in pool's queue after schedule = " + scheduledExecutor.getQueue().size());
 		}
 	}
 	
