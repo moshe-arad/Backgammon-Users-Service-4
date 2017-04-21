@@ -21,7 +21,7 @@ import org.springframework.web.context.annotation.RequestScope;
 public class Application implements ApplicationRunner {
 
 	@Autowired
-	private Users users;
+	private AppInit appInit;
 	private Logger logger = LoggerFactory.getLogger(Application.class);
 	
 	
@@ -32,14 +32,14 @@ public class Application implements ApplicationRunner {
 
 	@Override
 	public void run(ApplicationArguments arg0) throws Exception {
-		users.acceptNewUsers();
+		appInit.acceptNewUsers();
 	}
 	
 	@RequestMapping("/shutdown")
 	public ResponseEntity<String> shutdown(){
 		try{
 			logger.info("about to do shutdown.");
-			users.shutdown();
+			appInit.shutdown();
 			logger.info("shutdown compeleted.");
 			return new ResponseEntity<String>("", HttpStatus.OK);
 		}

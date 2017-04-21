@@ -1,16 +1,20 @@
 package org.moshe.arad.kafka.commands;
 
+import java.util.UUID;
+
 import org.moshe.arad.entities.BackgammonUser;
 
 public class CreateNewUserCommand {
 
+	private UUID uuid;
 	private BackgammonUser backgammonUser;
 	
 	public CreateNewUserCommand() {
 	}
 
-	public CreateNewUserCommand(BackgammonUser backgammonUser) {
+	public CreateNewUserCommand(UUID uuid, BackgammonUser backgammonUser) {
 		super();
+		this.uuid = uuid;
 		this.backgammonUser = backgammonUser;
 	}
 
@@ -20,5 +24,13 @@ public class CreateNewUserCommand {
 
 	public void setBackgammonUser(BackgammonUser backgammonUser) {
 		this.backgammonUser = backgammonUser;
+	}
+
+	protected UUID getUuid() {
+		return uuid;
+	}
+
+	protected void setUuid(UUID uuid) {
+		this.uuid = uuid;
 	}
 }

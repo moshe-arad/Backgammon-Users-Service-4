@@ -11,13 +11,10 @@ import org.moshe.arad.kafka.producers.SimpleProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
-@Service
-public class Users {
-
-	private Map<String,BackgammonUser> users = new HashMap<>(1000);
+@Component
+public class AppInit {
 	
 	@Autowired
 	private CreateNewUserCommandConsumer createNewUserCommandConsumer;
@@ -28,9 +25,9 @@ public class Users {
 	private ExecutorService executor = Executors.newFixedThreadPool(4);
 	
 	
-	private Logger logger = LoggerFactory.getLogger(Users.class);
+	private Logger logger = LoggerFactory.getLogger(AppInit.class);
 	
-	public Users() {
+	public AppInit() {
 	}
 	
 	public void acceptNewUsers(){

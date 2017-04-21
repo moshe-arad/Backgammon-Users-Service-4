@@ -36,13 +36,6 @@ public class SimpleProducer implements Runnable{
 		properties.put("value.serializer", KafkaUtils.NEW_USER_CREATED_EVENT_SERIALIZER);
 	}
 	
-	public SimpleProducer(String customValueSerializer) {
-		properties = new Properties();
-		properties.put("bootstrap.servers", KafkaUtils.SERVERS);
-		properties.put("key.serializer", KafkaUtils.KEY_STRING_SERIALIZER);
-		properties.put("value.serializer", customValueSerializer);
-	}	
-	
 	private void takeMessagesFromConsumersAndPass(int numJobs){
 		while(scheduledExecutor.getQueue().size() < numJobs){
 			try {
@@ -54,7 +47,6 @@ public class SimpleProducer implements Runnable{
 			
 			if(scheduledExecutor.getActiveCount() == numJobs) continue;
 			
-			logger.info("Threads in pool's queue before schedule = " + scheduledExecutor.getQueue().size());
 			scheduledExecutor.scheduleAtFixedRate(() -> {
 				while(isRunning){
 					try {
@@ -66,7 +58,6 @@ public class SimpleProducer implements Runnable{
 					}
 				}
 			}, 0, 500, TimeUnit.MILLISECONDS);
-			logger.info("Threads in pool's queue after schedule = " + scheduledExecutor.getQueue().size());
 		}
 	}
 
