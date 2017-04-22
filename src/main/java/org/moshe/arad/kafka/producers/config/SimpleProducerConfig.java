@@ -1,16 +1,16 @@
-package org.moshe.arad.kafka.consumers.config;
+package org.moshe.arad.kafka.producers.config;
 
 import java.util.Properties;
 
 import org.moshe.arad.kafka.KafkaUtils;
 
-public abstract class SimpleConsumerConfig {
+public abstract class SimpleProducerConfig {
 
 	private Properties properties = new Properties();
 	
-	public SimpleConsumerConfig() {
+	public SimpleProducerConfig() {
 		properties.put("bootstrap.servers", KafkaUtils.SERVERS);
-		properties.put("key.deserializer", KafkaUtils.KEY_STRING_DESERIALIZER);
+		properties.put("key.serializer", KafkaUtils.KEY_STRING_SERIALIZER);
 	}
 
 	@Override

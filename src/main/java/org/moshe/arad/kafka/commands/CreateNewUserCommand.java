@@ -4,7 +4,7 @@ import java.util.UUID;
 
 import org.moshe.arad.entities.BackgammonUser;
 
-public class CreateNewUserCommand {
+public class CreateNewUserCommand implements Commandable {
 
 	private UUID uuid;
 	private BackgammonUser backgammonUser;
@@ -18,6 +18,11 @@ public class CreateNewUserCommand {
 		this.backgammonUser = backgammonUser;
 	}
 
+	@Override
+	public String toString() {
+		return "CreateNewUserCommand [uuid=" + uuid + ", backgammonUser=" + backgammonUser + "]";
+	}
+
 	public BackgammonUser getBackgammonUser() {
 		return backgammonUser;
 	}
@@ -26,11 +31,11 @@ public class CreateNewUserCommand {
 		this.backgammonUser = backgammonUser;
 	}
 
-	protected UUID getUuid() {
+	public UUID getUuid() {
 		return uuid;
 	}
 
-	protected void setUuid(UUID uuid) {
+	public void setUuid(UUID uuid) {
 		this.uuid = uuid;
 	}
 }

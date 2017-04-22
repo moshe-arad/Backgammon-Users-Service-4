@@ -15,4 +15,5 @@ public class KafkaUtils {
 	public static final String CHECK_USER_NAME_AVAILABILITY_GROUP = "CheckUserNameAvailabilityGroup";
 	public static final String CHECK_USER_EMAIL_AVAILABILITY_COMMANDS_DESERIALIZER = "Check-User-Email-Availability-Command";
 	public static final String CHECK_USER_NAME_AVAILABILITY_COMMANDS_DESERIALIZER = "Check-User-Name-Availability-Command";
+	public static final String CREATE_NEW_USER_COMMAND_TOPIC = "Create-New-User-Command";
 }

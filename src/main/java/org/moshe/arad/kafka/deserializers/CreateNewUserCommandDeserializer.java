@@ -3,6 +3,7 @@ package org.moshe.arad.kafka.deserializers;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -40,8 +41,9 @@ public class CreateNewUserCommandDeserializer implements Deserializer<CreateNewU
             String firstName = deserializeString(buf);
             String lastName = deserializeString(buf);
             String email = deserializeString(buf);       
+            UUID uuid = new UUID(buf.getLong(), buf.getLong());
             
-            return new CreateNewUserCommand(
+            return new CreateNewUserCommand(uuid,
             		new BackgammonUser(userName, password, firstName, lastName, email, Location.Lobby));            		           
             
         } catch (Exception e) {

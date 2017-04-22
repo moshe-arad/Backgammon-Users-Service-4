@@ -32,5 +32,5 @@ public class NewUserCreatedEvent extends BackgammonEvent {
 
 	public void setBackgammonUser(BackgammonUser backgammonUser) {
 		this.backgammonUser = backgammonUser;
-	}	
+	}
 }
