@@ -1,4 +1,4 @@
-package org.moshe.arad.kafka.producers;
+package org.moshe.arad.kafka.producers.events;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
