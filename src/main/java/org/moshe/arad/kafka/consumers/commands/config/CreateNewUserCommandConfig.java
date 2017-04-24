@@ -1,6 +1,7 @@
-package org.moshe.arad.kafka.consumers.config;
+package org.moshe.arad.kafka.consumers.commands.config;
 
 import org.moshe.arad.kafka.KafkaUtils;
+import org.moshe.arad.kafka.consumers.SimpleConsumerConfig;
 import org.springframework.stereotype.Component;
 
 @Component("CreateNewUserCommandConfig")

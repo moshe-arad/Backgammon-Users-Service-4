@@ -1,6 +1,7 @@
-package org.moshe.arad.kafka.producers.config;
+package org.moshe.arad.kafka.producers.events.config;
 
 import org.moshe.arad.kafka.KafkaUtils;
+import org.moshe.arad.kafka.producers.SimpleProducerConfig;
 import org.springframework.stereotype.Component;
 
 @Component

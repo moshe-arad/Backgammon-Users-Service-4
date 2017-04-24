@@ -5,19 +5,19 @@ import java.util.Date;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.moshe.arad.kafka.ConsumerToProducerQueue;
 import org.moshe.arad.kafka.commands.CreateNewUserCommand;
-import org.moshe.arad.kafka.consumers.config.SimpleConsumerConfig;
+import org.moshe.arad.kafka.consumers.SimpleConsumerConfig;
 import org.moshe.arad.kafka.events.NewUserCreatedEvent;
 import org.springframework.stereotype.Component;
 
 @Component
-public class CreateNewUserCommandConsumer extends SimpleBackgammonCommandsConsumer<CreateNewUserCommand> {
+public class CreateNewUserCommandsConsumer extends SimpleBackgammonCommandsConsumer<CreateNewUserCommand> {
 
 	private ConsumerToProducerQueue consumerToProducerQueue;
 	
-	public CreateNewUserCommandConsumer() {
+	public CreateNewUserCommandsConsumer() {
 	}
 	
-	public CreateNewUserCommandConsumer(SimpleConsumerConfig simpleConsumerConfig, String topic) {
+	public CreateNewUserCommandsConsumer(SimpleConsumerConfig simpleConsumerConfig, String topic) {
 		super(simpleConsumerConfig, topic);
 	}
 

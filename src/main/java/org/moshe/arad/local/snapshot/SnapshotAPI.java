@@ -2,15 +2,24 @@ package org.moshe.arad.local.snapshot;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.moshe.arad.entities.BackgammonUser;
+import org.moshe.arad.kafka.events.FromMongoEventsStoreEvent;
+import org.moshe.arad.kafka.events.NewUserCreatedEvent;
+import org.moshe.arad.kafka.events.NewUserJoinedLobbyEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Component;
 
+@Component
 public class SnapshotAPI {
 
 //	@Autowired
@@ -21,6 +30,10 @@ public class SnapshotAPI {
 	
 	@Autowired
 	private StringRedisTemplate stringRedisTemplate;
+	
+	private LinkedList<FromMongoEventsStoreEvent> fromMongoEventsStoreEventList;
+	
+	private Logger logger = LoggerFactory.getLogger(SnapshotAPI.class);
 	
 	private static final String LAST_UPDATED = "lastUpdateSnapshotDate";
 	private static final String LOBBY = "Lobby";
@@ -61,24 +74,70 @@ public class SnapshotAPI {
 		redisTemplate.expire(LAST_UPDATED, 1, TimeUnit.NANOSECONDS);
 		
 		while(redisTemplate.hasKey(LOBBY) || redisTemplate.hasKey(GAME) || redisTemplate.hasKey(LOGGED_OUT)){
-			Thread.sleep(1000);
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		}
 		
-//		redisTemplate.opsForSet(). difference(LOBBY, snapshot.get(LOBBY));
+		BackgammonUser[] lobbyUsers = new BackgammonUser[snapshot.get(LOBBY).size()];
+		snapshot.get(LOBBY).toArray(lobbyUsers);
 		
-		if(!isLastUpdateSnapshotDateExists()) return null;
-		else{
-//			Set<String> usersInLobby = redisTemplate.opsForSet().members("Lobby");
-			Set<BackgammonUser> usersInLobby = redisTemplate.opsForSet().members(LOBBY);
-			Set<BackgammonUser> usersInGame = redisTemplate.opsForSet().members(GAME);
-			Set<BackgammonUser> usersLoggedOut = redisTemplate.opsForSet().members(LOGGED_OUT);
-			
-			Map<String,Set<BackgammonUser>> result = new HashMap<String, Set<BackgammonUser>>(10000);
-			
-			result.put(LOBBY, usersInLobby);
-			result.put(GAME, usersInGame);
-			result.put(LOGGED_OUT, usersLoggedOut);
-			return result;
-		}
+		redisTemplate.opsForSet().add(LOBBY, lobbyUsers);
+		
+		BackgammonUser[] gameUsers = new BackgammonUser[snapshot.get(GAME).size()];
+		snapshot.get(GAME).toArray(gameUsers);
+		
+		redisTemplate.opsForSet().add(GAME, gameUsers);
+		
+		BackgammonUser[] loggedOutUsers = new BackgammonUser[snapshot.get(LOGGED_OUT).size()];
+		snapshot.get(LOGGED_OUT).toArray(loggedOutUsers);
+		
+		redisTemplate.opsForSet().add(LOGGED_OUT, loggedOutUsers);
 	}
+
+	public void executeEventsFoldOnEventsFromMongo(){
+		Map<String,Set<BackgammonUser>> currentSnapshot = this.getLatestSnapshot();
+		
+		ListIterator<FromMongoEventsStoreEvent> it = this.fromMongoEventsStoreEventList.listIterator();
+		Map<String, BackgammonUser> aboutToEnterLobby = new HashMap<>(10000);
+		
+		logger.info("Starting to fold events into current state...");
+		
+		while(it.hasNext()){			
+			FromMongoEventsStoreEvent eventToFold = it.next();
+			logger.info("Event to fold = " + eventToFold);
+			if(eventToFold.getClazz().equals(NewUserCreatedEvent.class)){
+				NewUserCreatedEvent newUserCreatedEvent = (NewUserCreatedEvent) eventToFold.getBackgammonEvent();
+				BackgammonUser backgammonUser  = newUserCreatedEvent.getBackgammonUser();
+				aboutToEnterLobby.put(backgammonUser.getUserName(), backgammonUser);
+			}
+			else if(eventToFold.getClazz().equals(NewUserJoinedLobbyEvent.class)){
+				NewUserJoinedLobbyEvent newUserJoinedLobbyEvent = (NewUserJoinedLobbyEvent) eventToFold.getBackgammonEvent();
+				BackgammonUser backgammonUser = newUserJoinedLobbyEvent.getBackgammonUser();
+				if(aboutToEnterLobby.containsKey(backgammonUser.getUserName())){
+					aboutToEnterLobby.remove(backgammonUser.getUserName());
+					currentSnapshot.get(LOBBY).add(backgammonUser);
+				}
+				else{
+					currentSnapshot.get(LOBBY).add(backgammonUser);
+				}
+			}
+			logger.info("Event to folded successfuly = " + eventToFold);
+			//TODO write code about logging out and in game code
+		}
+		
+		logger.info("Events folding into current state completed...");
+		logger.info("Updating current local redis snapshot...");
+		this.updateLatestSnapshot(currentSnapshot);
+		logger.info("Current local redis snapshot update completed...");
+	}
+	public LinkedList<FromMongoEventsStoreEvent> getFromMongoEventsStoreEventList() {
+		return fromMongoEventsStoreEventList;
+	}
+
+	public void setFromMongoEventsStoreEventList(LinkedList<FromMongoEventsStoreEvent> fromMongoEventsStoreEventList) {
+		this.fromMongoEventsStoreEventList = fromMongoEventsStoreEventList;
+	}	
 }

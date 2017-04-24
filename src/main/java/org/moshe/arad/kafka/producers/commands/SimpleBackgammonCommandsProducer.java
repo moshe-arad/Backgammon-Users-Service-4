@@ -1,7 +1,5 @@
 package org.moshe.arad.kafka.producers.commands;
 
-import java.util.Date;
-import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -11,8 +9,7 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.moshe.arad.kafka.ConsumerToProducerQueue;
 import org.moshe.arad.kafka.commands.Commandable;
-import org.moshe.arad.kafka.commands.PullEventsCommand;
-import org.moshe.arad.kafka.producers.config.SimpleProducerConfig;
+import org.moshe.arad.kafka.producers.SimpleProducerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
@@ -24,6 +21,8 @@ import org.springframework.stereotype.Component;
  * @param <T> is the event that we want to pass
  * 
  * important to set topic and properties before usage
+ * 
+ * need to set initial delay and period before executing
  */
 @Component
 @Scope("prototype")
@@ -39,7 +38,8 @@ public abstract class SimpleBackgammonCommandsProducer <T extends Commandable> i
 	private static final int PRODUCERS_NUM = 3;
 	private String topic;
 	
-	private static final int DELAY_MIN = 10;
+	private int initialDelay;
+	private int period;
 	
 	public SimpleBackgammonCommandsProducer() {
 	}
@@ -89,15 +89,13 @@ public abstract class SimpleBackgammonCommandsProducer <T extends Commandable> i
 			
 			scheduledExecutor.scheduleAtFixedRate(() -> {
 				while(isRunning){
-					//need to ask redis for a desired date
-					PullEventsCommand pullEventsCommand = new PullEventsCommand(UUID.randomUUID(), new Date());
-					sendKafkaMessage(pullEventsCommand);
+					doProducerCommandsOperations();
 				}
-			}, 0, DELAY_MIN, TimeUnit.MINUTES);
+			}, initialDelay, period, TimeUnit.MINUTES);
 		}
 	}
 	
-	public abstract void eventsSchedulerOperations();
+	public abstract void doProducerCommandsOperations();
 	
 	public boolean isRunning() {
 		return isRunning;
@@ -138,5 +136,21 @@ public abstract class SimpleBackgammonCommandsProducer <T extends Commandable> i
 
 	public void setConsumerToProducerQueue(ConsumerToProducerQueue consumerToProducerQueue) {
 		this.consumerToProducerQueue = consumerToProducerQueue;
+	}
+
+	public int getInitialDelay() {
+		return initialDelay;
+	}
+
+	public void setInitialDelay(int initialDelay) {
+		this.initialDelay = initialDelay;
+	}
+
+	public int getPeriod() {
+		return period;
+	}
+
+	public void setPeriod(int period) {
+		this.period = period;
 	}	
 }

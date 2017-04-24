@@ -1,5 +1,6 @@
 package org.moshe.arad;
 
+import org.moshe.arad.initializer.AppInit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -32,21 +33,22 @@ public class Application implements ApplicationRunner {
 
 	@Override
 	public void run(ApplicationArguments arg0) throws Exception {
-		appInit.acceptNewUsers();
+		appInit.startEngine();
 	}
 	
 	@RequestMapping("/shutdown")
 	public ResponseEntity<String> shutdown(){
-		try{
-			logger.info("about to do shutdown.");
-			appInit.shutdown();
-			logger.info("shutdown compeleted.");
+		return this.executeShutdown();		
+	}
+	
+	private ResponseEntity<String> executeShutdown(){
+		try{			
+			appInit.engineShutdown();			
 			return new ResponseEntity<String>("", HttpStatus.OK);
 		}
 		catch(Exception ex){
 			logger.info("Failed to shutdown users service.");
 			return new ResponseEntity<String>("", HttpStatus.INTERNAL_SERVER_ERROR);
 		}
-		
 	}
 }
