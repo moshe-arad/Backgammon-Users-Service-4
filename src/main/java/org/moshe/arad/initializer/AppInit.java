@@ -7,10 +7,11 @@ import org.moshe.arad.kafka.ConsumerToProducerQueue;
 import org.moshe.arad.kafka.KafkaUtils;
 import org.moshe.arad.kafka.consumers.commands.CreateNewUserCommandsConsumer;
 import org.moshe.arad.kafka.consumers.commands.config.CreateNewUserCommandConfig;
-import org.moshe.arad.kafka.consumers.events.FromMongoEventsStoreEventsConsumer;
+import org.moshe.arad.kafka.consumers.events.json.FromMongoEventsStoreEventConfig;
+import org.moshe.arad.kafka.consumers.events.json.FromMongoEventsStoreEventsConsumer;
 import org.moshe.arad.kafka.events.NewUserCreatedEvent;
-import org.moshe.arad.kafka.producers.commands.PullEventsCommandsProducer;
-import org.moshe.arad.kafka.producers.commands.config.PullEventsCommandsConfig;
+import org.moshe.arad.kafka.producers.commands.json.PullEventsCommandsConfig;
+import org.moshe.arad.kafka.producers.commands.json.PullEventsCommandsProducer;
 import org.moshe.arad.kafka.producers.events.SimpleBackgammonEventsProducer;
 import org.moshe.arad.kafka.producers.events.config.NewUserCreatedEventConfig;
 import org.slf4j.Logger;
@@ -45,6 +46,9 @@ public class AppInit implements ApplicationContextAware, AppInitializer {
 	@Autowired
 	private FromMongoEventsStoreEventsConsumer fromMongoEventsStoreEventsConsumer;
 
+	@Autowired
+	private FromMongoEventsStoreEventConfig fromMongoEventsStoreEventConfig;
+	
 	private ApplicationContext context;
 	
 	private ExecutorService executor = Executors.newFixedThreadPool(4);
@@ -54,7 +58,7 @@ public class AppInit implements ApplicationContextAware, AppInitializer {
 	private Logger logger = LoggerFactory.getLogger(AppInit.class);
 	
 	public AppInit() {
-		createUserConsumerToProducerQueue = context.getBean(ConsumerToProducerQueue.class);
+		
 	}
 	
 	private void initKafkaCommandsConsumers() {
@@ -67,13 +71,17 @@ public class AppInit implements ApplicationContextAware, AppInitializer {
 	}
 
 	private void initKafkaEventsConsumers() {
+		logger.info("Initializing from mongo events store event consumer...");
 		fromMongoEventsStoreEventsConsumer.setTopic(KafkaUtils.FROM_MONGO_TO_USERS_SERVICES);
+		fromMongoEventsStoreEventsConsumer.setSimpleConsumerConfig(fromMongoEventsStoreEventConfig);
+		fromMongoEventsStoreEventsConsumer.initConsumer();
+		logger.info("Initialize from mongo events store event consumer, completed...");
 	}
 
 	private void initKafkaCommandsProducers() {
 		logger.info("Initializing pull events commands producer...");
-		pullEventsCommandsProducer.setPeriod(10);
-		pullEventsCommandsProducer.setInitialDelay(10);
+		pullEventsCommandsProducer.setPeriod(1);
+		pullEventsCommandsProducer.setInitialDelay(1);
 		pullEventsCommandsProducer.setTopic(KafkaUtils.PULL_EVENTS_COMMAND_TOPIC);
 		pullEventsCommandsProducer.setSimpleProducerConfig(pullEventsCommandsConfig);
 		logger.info("Initialize pull events commands producer, completed...");
@@ -91,6 +99,8 @@ public class AppInit implements ApplicationContextAware, AppInitializer {
 	public void startEngine() {
 		logger.info("Users Service, Engine is about to start...");
 		
+		createUserConsumerToProducerQueue = context.getBean(ConsumerToProducerQueue.class);
+		
 		initKafkaCommandsConsumers();
 		initKafkaEventsConsumers();
 		initKafkaCommandsProducers();
@@ -99,6 +109,7 @@ public class AppInit implements ApplicationContextAware, AppInitializer {
 		executor.execute(createNewUserCommandConsumer);
 		executor.execute(newUserCreatedEventsProducer);
 		executor.execute(pullEventsCommandsProducer);
+		executor.execute(fromMongoEventsStoreEventsConsumer);
 		logger.info("Users Service, Engine started successfuly...");
 	}
 

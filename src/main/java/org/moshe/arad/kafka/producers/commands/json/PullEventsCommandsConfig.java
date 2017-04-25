@@ -1,4 +1,4 @@
-package org.moshe.arad.kafka.producers.commands.config;
+package org.moshe.arad.kafka.producers.commands.json;
 
 import org.moshe.arad.kafka.KafkaUtils;
 import org.moshe.arad.kafka.producers.SimpleProducerConfig;
@@ -9,6 +9,6 @@ public class PullEventsCommandsConfig extends SimpleProducerConfig{
 
 	public PullEventsCommandsConfig() {
 		super();
-		super.getProperties().put("value.serializer", KafkaUtils.PULL_EVENTS_COMMAND_SERIALIZER);
+		super.getProperties().put("value.serializer", KafkaUtils.STRING_SERIALIZER);
 	}
 }

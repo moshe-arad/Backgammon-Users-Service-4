@@ -9,16 +9,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
-public class PullEventsCommandsProducer extends SimpleBackgammonCommandsProducer<PullEventsCommand>{
+public class PullEventsCommandsProducerNonJson extends SimpleBackgammonCommandsProducer<PullEventsCommand>{
 
 	@Autowired
 	private SnapshotAPI snapshotAPI;
 	
 	@Override
 	public void doProducerCommandsOperations() {
-		Date lastUpdate = snapshotAPI.getLastUpdateSnapshotDate();
-		
-		PullEventsCommand pullEventsCommand = new PullEventsCommand(UUID.randomUUID(), lastUpdate);
-		sendKafkaMessage(pullEventsCommand);		
+//		Date lastUpdate = snapshotAPI.getLastUpdateSnapshotDate();
+//		
+//		PullEventsCommand pullEventsCommand = new PullEventsCommand(UUID.randomUUID(), lastUpdate);
+//		sendKafkaMessage(pullEventsCommand);		
 	}
 }
