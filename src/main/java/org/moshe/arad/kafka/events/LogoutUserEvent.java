@@ -9,17 +9,17 @@ public class LogoutUserEvent extends BackgammonEvent {
 
 	BackgammonUser backgammonUser;
 
-	public LogoutUserEvent(UUID uuid, int serviceId, String serviceName, int entityId, String entityType, int eventId,
-			String eventType, BackgammonUser backgammonUser) {
-		super(uuid, serviceId, serviceName, entityId, entityType, eventId, eventType);
+	public LogoutUserEvent(UUID uuid, int serviceId, int eventId, Date arrived, String clazz,
+			BackgammonUser backgammonUser) {
+		super(uuid, serviceId, eventId, arrived, clazz);
 		this.backgammonUser = backgammonUser;
 	}
 
-	public LogoutUserEvent(UUID uuid, int serviceId, String serviceName, int entityId, String entityType, int eventId,
-			String eventType, Date arrived, BackgammonUser backgammonUser) {
-		super(uuid, serviceId, serviceName, entityId, entityType, eventId, eventType, arrived);
+	public LogoutUserEvent(BackgammonUser backgammonUser) {
+		super();
 		this.backgammonUser = backgammonUser;
 	}
+
 
 	@Override
 	public String toString() {

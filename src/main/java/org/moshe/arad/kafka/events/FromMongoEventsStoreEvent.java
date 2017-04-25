@@ -12,19 +12,9 @@ public class FromMongoEventsStoreEvent extends BackgammonEvent{
 	public FromMongoEventsStoreEvent() {
 	}
 
-	public FromMongoEventsStoreEvent(UUID uuid, int serviceId, String serviceName, int entityId, String entityType,
-			int eventId, String eventType, BackgammonEvent backgammonEvent, boolean isStartReadEvents,
-			boolean isEndReadEvents) {
-		super(uuid, serviceId, serviceName, entityId, entityType, eventId, eventType);
-		this.backgammonEvent = backgammonEvent;
-		this.isStartReadEvents = isStartReadEvents;
-		this.isEndReadEvents = isEndReadEvents;
-	}
-
-	public FromMongoEventsStoreEvent(UUID uuid, int serviceId, String serviceName, int entityId, String entityType,
-			int eventId, String eventType, Date arrived, BackgammonEvent backgammonEvent, boolean isStartReadEvents,
-			boolean isEndReadEvents) {
-		super(uuid, serviceId, serviceName, entityId, entityType, eventId, eventType, arrived);
+	public FromMongoEventsStoreEvent(UUID uuid, int serviceId, int eventId, Date arrived, String clazz,
+			BackgammonEvent backgammonEvent, boolean isStartReadEvents, boolean isEndReadEvents) {
+		super(uuid, serviceId, eventId, arrived, clazz);
 		this.backgammonEvent = backgammonEvent;
 		this.isStartReadEvents = isStartReadEvents;
 		this.isEndReadEvents = isEndReadEvents;

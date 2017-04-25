@@ -28,7 +28,7 @@ public class CreateNewUserCommandsConsumer extends SimpleBackgammonCommandsConsu
     	
 		logger.info("Creating New User Created Event... ");
 		NewUserCreatedEvent newUserCreatedEvent = new NewUserCreatedEvent(record.value().getUuid(), 
-				1, "Users Service", 1, "User", 1, "newUserCreatedEvent", new Date(), record.value().getBackgammonUser()); 
+				1, 1, new Date(), "NewUserCreatedEvent", record.value().getBackgammonUser()); 
     	consumerToProducerQueue.getEventsQueue().put(newUserCreatedEvent);
     	logger.info("Event created and passed to consumer...");
 	}
