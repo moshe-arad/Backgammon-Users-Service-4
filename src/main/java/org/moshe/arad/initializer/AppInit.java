@@ -83,7 +83,7 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 		initSingleConsumer(fromMongoEventsStoreEventsConsumer, KafkaUtils.FROM_MONGO_TO_USERS_SERVICES, fromMongoEventsStoreEventConfig, null);
 		logger.info("Initialize from mongo events store event consumer, completed...");
 		
-//		executeProducersAndConsumers(Arrays.asList(fromMongoEventsStoreEventsConsumer));
+		executeProducersAndConsumers(Arrays.asList(fromMongoEventsStoreEventsConsumer));
 	}
 
 	@Override
@@ -92,7 +92,7 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 		initSingleProducer(pullEventsCommandsProducer, 1, 1, TimeUnit.MINUTES, KafkaUtils.PULL_EVENTS_COMMAND_TOPIC, pullEventsCommandsConfig, null);
 		logger.info("Initialize pull events commands producer, completed...");
 		
-//		executeProducersAndConsumers(Arrays.asList(pullEventsCommandsProducer));
+		executeProducersAndConsumers(Arrays.asList(pullEventsCommandsProducer));
 	}
 
 	@Override
