@@ -1,4 +1,4 @@
-package org.moshe.arad.kafka.producers.events;
+package org.moshe.arad.kafka.producers.commands;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -8,12 +8,15 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.moshe.arad.kafka.ConsumerToProducerQueue;
-import org.moshe.arad.kafka.events.BackgammonEvent;
+import org.moshe.arad.kafka.commands.ICommand;
 import org.moshe.arad.kafka.producers.SimpleProducerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 /**
  * 
  * @author moshe-arad
@@ -21,12 +24,14 @@ import org.springframework.stereotype.Component;
  * @param <T> is the event that we want to pass
  * 
  * important to set topic and properties before usage
+ * 
+ * need to set initial delay and period before executing
  */
 @Component
 @Scope("prototype")
-public class SimpleBackgammonEventsProducer <T extends BackgammonEvent> implements SimpleProducer, Runnable {
+public abstract class SimpleCommandsProducer <T extends ICommand> implements ISimpleCommandProducer<T>, Runnable {
 
-	private final Logger logger = LoggerFactory.getLogger(SimpleBackgammonEventsProducer.class);
+	private final Logger logger = LoggerFactory.getLogger(SimpleCommandsProducer.class);
 	
 	private SimpleProducerConfig simpleProducerConfig;
 	
@@ -36,41 +41,59 @@ public class SimpleBackgammonEventsProducer <T extends BackgammonEvent> implemen
 	private static final int PRODUCERS_NUM = 3;
 	private String topic;
 	
-	public SimpleBackgammonEventsProducer() {
+	private int initialDelay;
+	private int period;
+	private TimeUnit timeUnit;
+	
+	public SimpleCommandsProducer() {
 	}
 	
-	public SimpleBackgammonEventsProducer(SimpleProducerConfig simpleProducerConfig, String topic) {
+	public SimpleCommandsProducer(SimpleProducerConfig simpleProducerConfig, String topic) {
 		this.simpleProducerConfig = simpleProducerConfig;
 		this.topic = topic;
 	}
 	
 	@Override
-    public void sendKafkaMessage(BackgammonEvent event){
+    public void sendKafkaMessage(T command){
 		try{
-			logger.info("Front Service is about to send a Command to topic=" + topic + ", Event=" + event);
-			sendMessage(event);
-			logger.info("Message sent successfully, Front Service sent a Command to topic=" + topic + ", Event=" + event);
+			logger.info("Users Service is about to send a Command to topic=" + topic + ", Event=" + command);
+			sendMessage(command);
+			logger.info("Message sent successfully, Users Service sent a Command to topic=" + topic + ", Event=" + command);
 		}
 		catch(Exception ex){
-			logger.error("Failed to sent message, Front Service failed to send a Command to topic=" + topic + ", Event=" + event);
+			logger.error("Failed to sent message, Users Service failed to send a Command to topic=" + topic + ", Event=" + command);
 			logger.error(ex.getMessage());
 			ex.printStackTrace();
 		}
 	}
 	
-	private void sendMessage(BackgammonEvent event){
+	private void sendMessage(T command){
 		logger.info("Creating kafka producer.");
-		Producer<String, BackgammonEvent> producer = new KafkaProducer<>(simpleProducerConfig.getProperties());
+		Producer<String, String> producer = new KafkaProducer<>(simpleProducerConfig.getProperties());
 		logger.info("Kafka producer created.");
 		
-		logger.info("Sending message to topic = " + topic + ", message = " + event.toString() + ".");
-		ProducerRecord<String, BackgammonEvent> record = new ProducerRecord<String, BackgammonEvent>(topic, event);
+		logger.info("Sending message to topic = " + topic + ", message = " + command.toString() + ".");
+		String commandJsonBlob = convertCommandIntoJsonBlob(command);
+		logger.info("Sending message to topic = " + topic + ", JSON message = " + commandJsonBlob + ".");
+		ProducerRecord<String, String> record = new ProducerRecord<String, String>(topic, commandJsonBlob);
 		producer.send(record);
 		logger.info("Message sent.");
 		producer.close();
 		logger.info("Kafka producer closed.");
 	}
 
+	private String convertCommandIntoJsonBlob(T command){
+		ObjectMapper objectMapper = new ObjectMapper();
+		try {
+			return objectMapper.writeValueAsString(command);
+		} catch (JsonProcessingException e) {
+			logger.error("Failed to convert command into JSON blob...");
+			logger.error(e.getMessage());
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
 	@SuppressWarnings("unchecked")
 	private void takeMessagesFromConsumersAndPass(int numJobs){
 		while(scheduledExecutor.getQueue().size() < numJobs){
@@ -83,18 +106,14 @@ public class SimpleBackgammonEventsProducer <T extends BackgammonEvent> implemen
 			if(scheduledExecutor.getActiveCount() == numJobs) continue;
 			
 			scheduledExecutor.scheduleAtFixedRate(() -> {
-				while(isRunning){
-					try {						
-						T backgammonEvent = (T) consumerToProducerQueue.getEventsQueue().take();
-						sendKafkaMessage(backgammonEvent);
-					} catch (InterruptedException e) {
-						logger.error("Failed to grab new user created event from queue.");
-						e.printStackTrace();
-					}
-				}
-			}, 0, 500, TimeUnit.MILLISECONDS);
+//				while(isRunning){
+					doProducerCommandsOperations();
+//				}
+			}, initialDelay, period, timeUnit);
 		}
 	}
+	
+	public abstract void doProducerCommandsOperations();
 	
 	public boolean isRunning() {
 		return isRunning;
@@ -135,5 +154,26 @@ public class SimpleBackgammonEventsProducer <T extends BackgammonEvent> implemen
 
 	public void setConsumerToProducerQueue(ConsumerToProducerQueue consumerToProducerQueue) {
 		this.consumerToProducerQueue = consumerToProducerQueue;
-	}	
+	}
+
+	public int getInitialDelay() {
+		return initialDelay;
+	}
+
+	public void setInitialDelay(int initialDelay) {
+		this.initialDelay = initialDelay;
+	}
+
+	public int getPeriod() {
+		return period;
+	}
+
+	public void setPeriod(int period) {
+		this.period = period;
+	}
+	
+	@Override
+	public void setTimeUnit(TimeUnit timeUnit) {
+		this.timeUnit = timeUnit;
+	}
 }

@@ -11,6 +11,7 @@ public abstract class SimpleConsumerConfig {
 	public SimpleConsumerConfig() {
 		properties.put("bootstrap.servers", KafkaUtils.SERVERS);
 		properties.put("key.deserializer", KafkaUtils.STRING_DESERIALIZER);
+		properties.put("value.deserializer", KafkaUtils.STRING_DESERIALIZER);
 	}
 
 	@Override

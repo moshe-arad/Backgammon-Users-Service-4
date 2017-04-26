@@ -3,7 +3,7 @@ package org.moshe.arad.kafka.commands;
 import java.util.Date;
 import java.util.UUID;
 
-public class PullEventsCommand implements Commandable {
+public class PullEventsCommand implements ICommand {
 
 	private UUID uuid;
 	private Date fromDate;

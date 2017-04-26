@@ -1,8 +1,9 @@
-package org.moshe.arad.kafka.consumers.events.json;
+package org.moshe.arad.kafka.consumers.events;
 
 import java.util.LinkedList;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.moshe.arad.kafka.ConsumerToProducerQueue;
 import org.moshe.arad.kafka.consumers.SimpleConsumerConfig;
 import org.moshe.arad.kafka.events.BackgammonEvent;
 import org.moshe.arad.kafka.events.NewUserCreatedEvent;
@@ -17,7 +18,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Component
-public class FromMongoEventsStoreEventsConsumer extends SimpleBackgammonEventsConsumer {
+public class FromMongoEventsStoreEventsConsumer extends SimpleEventsConsumer {
 	
 	@Autowired
 	private SnapshotAPI snapshotAPI;
@@ -77,6 +78,12 @@ public class FromMongoEventsStoreEventsConsumer extends SimpleBackgammonEventsCo
 			logger.error(ex.getMessage());
 			ex.printStackTrace();
 		}
+	}
+
+	@Override
+	public void setConsumerToProducerQueue(ConsumerToProducerQueue consumerToProducerQueue) {
+		// TODO Auto-generated method stub
+		
 	}	
 }
 

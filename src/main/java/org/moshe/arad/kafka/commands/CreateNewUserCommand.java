@@ -4,7 +4,7 @@ import java.util.UUID;
 
 import org.moshe.arad.entities.BackgammonUser;
 
-public class CreateNewUserCommand implements Commandable {
+public class CreateNewUserCommand implements ICommand {
 
 	private UUID uuid;
 	private BackgammonUser backgammonUser;
