@@ -3,6 +3,7 @@ package org.moshe.arad.kafka.consumers;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import org.moshe.arad.kafka.ConsumerToProducerQueue;
+import org.moshe.arad.kafka.consumers.config.SimpleConsumerConfig;
 
 public interface ISimpleConsumer {
 

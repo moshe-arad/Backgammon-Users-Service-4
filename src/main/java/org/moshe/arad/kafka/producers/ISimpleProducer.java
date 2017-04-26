@@ -4,6 +4,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.moshe.arad.kafka.ConsumerToProducerQueue;
+import org.moshe.arad.kafka.producers.config.SimpleProducerConfig;
 
 public interface ISimpleProducer {
 

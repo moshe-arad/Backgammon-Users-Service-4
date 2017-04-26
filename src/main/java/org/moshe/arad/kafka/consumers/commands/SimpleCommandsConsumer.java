@@ -12,7 +12,7 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.moshe.arad.kafka.ConsumerToProducerQueue;
 import org.moshe.arad.kafka.commands.ICommand;
 import org.moshe.arad.kafka.consumers.ISimpleConsumer;
-import org.moshe.arad.kafka.consumers.SimpleConsumerConfig;
+import org.moshe.arad.kafka.consumers.config.SimpleConsumerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;

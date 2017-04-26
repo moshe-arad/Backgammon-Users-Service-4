@@ -6,7 +6,7 @@ import java.util.concurrent.TimeUnit;
 import org.moshe.arad.kafka.ConsumerToProducerQueue;
 import org.moshe.arad.kafka.events.BackgammonEvent;
 import org.moshe.arad.kafka.producers.ISimpleProducer;
-import org.moshe.arad.kafka.producers.SimpleProducerConfig;
+import org.moshe.arad.kafka.producers.config.SimpleProducerConfig;
 
 public interface ISimpleEventProducer<T extends BackgammonEvent> extends ISimpleProducer{
 

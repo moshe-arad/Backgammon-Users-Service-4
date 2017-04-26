@@ -6,7 +6,7 @@ import java.util.concurrent.TimeUnit;
 import org.moshe.arad.kafka.ConsumerToProducerQueue;
 import org.moshe.arad.kafka.commands.ICommand;
 import org.moshe.arad.kafka.producers.ISimpleProducer;
-import org.moshe.arad.kafka.producers.SimpleProducerConfig;
+import org.moshe.arad.kafka.producers.config.SimpleProducerConfig;
 
 public interface ISimpleCommandProducer <T extends ICommand> extends ISimpleProducer{
 
