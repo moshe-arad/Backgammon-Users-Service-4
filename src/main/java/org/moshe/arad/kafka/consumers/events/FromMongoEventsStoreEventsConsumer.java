@@ -112,7 +112,7 @@ public class FromMongoEventsStoreEventsConsumer extends SimpleEventsConsumer {
 		fromMongoEventsStoreEventList = new ArrayList<>(eventsFromMongoSet);
 		fromMongoEventsStoreEventList = (ArrayList<BackgammonEvent>) fromMongoEventsStoreEventList.stream().sorted((BackgammonEvent e1, BackgammonEvent e2) -> {return e1.getArrived().compareTo(e2.getArrived());}).collect(Collectors.toList());
 		return new LinkedList<>(fromMongoEventsStoreEventList);
-	}
+	}	
 }
 
 

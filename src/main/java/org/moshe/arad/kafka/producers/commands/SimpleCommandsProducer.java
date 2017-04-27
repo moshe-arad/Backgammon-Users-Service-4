@@ -95,21 +95,13 @@ public abstract class SimpleCommandsProducer <T extends ICommand> implements ISi
 	}
 	
 	private void takeMessagesFromConsumersAndPass(int numJobs){
-//		while(scheduledExecutor.getQueue().size() < numJobs){
-//			try {
-//				Thread.sleep(1000);
-//			} catch (InterruptedException e1) {
-//				e1.printStackTrace();
-//			}
-//			
-//			if(scheduledExecutor.getActiveCount() == numJobs) continue;
-			
+		for(int i=0; i<numJobs; i++){
 			scheduledExecutor.scheduleAtFixedRate(() -> {
-//				while(isRunning){
+				while(isRunning){
 					doProducerCommandsOperations();
-//				}
+				}
 			}, initialDelay, period, timeUnit);
-//		}
+		}
 	}
 	
 	public abstract void doProducerCommandsOperations();

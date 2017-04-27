@@ -45,28 +45,14 @@ public abstract class SimpleCommandsConsumer implements Runnable, ISimpleCommand
 	}
 
 	private void executeConsumers(int numConsumers){
-		
-		while(scheduledExecutor.getQueue().size() < numConsumers){
-			
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e1) {
-				e1.printStackTrace();
-			}
-			
-			if(scheduledExecutor.getActiveCount() == numConsumers) continue;
-			
-			scheduledExecutor.scheduleAtFixedRate( () -> {
-				consumer.subscribe(Arrays.asList(topic));
-	    		
+		for(int i=0; i<numConsumers; i++){
+			scheduledExecutor.scheduleAtFixedRate( () -> {					    		
 	    		while (isRunning){
 	                ConsumerRecords<String, String> records = consumer.poll(100);
 	                for (ConsumerRecord<String, String> record : records){
 	                	consumerOperations(record);	                	
 	                }	              	             
-	    		}
-		        consumer.close();
-		        
+	    		}		       		        
 			} , 0, 100, TimeUnit.MILLISECONDS);
 		}
 	}
@@ -74,6 +60,7 @@ public abstract class SimpleCommandsConsumer implements Runnable, ISimpleCommand
 	@Override
 	public void initConsumer(){
 		consumer = new KafkaConsumer<String,String>(simpleConsumerConfig.getProperties());
+		consumer.subscribe(Arrays.asList(topic));
 	}
 	
 	public abstract void consumerOperations(ConsumerRecord<String,String> record);
@@ -123,4 +110,9 @@ public abstract class SimpleCommandsConsumer implements Runnable, ISimpleCommand
 	public void setConsumerToProducerQueue(ConsumerToProducerQueue consumerToProducerQueue) {
 		this.consumerToProducerQueue = consumerToProducerQueue;
 	}	
+	
+	@Override
+	public void closeConsumer(){
+		consumer.close();
+	}
 }

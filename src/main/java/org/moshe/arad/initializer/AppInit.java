@@ -92,7 +92,7 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 		initSingleProducer(pullEventsCommandsProducer, 1, 1, TimeUnit.MINUTES, KafkaUtils.PULL_EVENTS_COMMAND_TOPIC, pullEventsCommandsConfig, null);
 		logger.info("Initialize pull events commands producer, completed...");
 		
-		executeProducersAndConsumers(Arrays.asList(pullEventsCommandsProducer));
+//		executeProducersAndConsumers(Arrays.asList(pullEventsCommandsProducer));
 	}
 
 	@Override
@@ -138,7 +138,9 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 	
 	private void shutdownSingleConsumer(ISimpleConsumer consumer) {
 		consumer.setRunning(false);
-		consumer.getScheduledExecutor().shutdown();	
+		consumer.getScheduledExecutor().shutdown();
+		consumer.closeConsumer();
+		
 	}
 	
 	private void shutdownSingleProducer(ISimpleProducer producer) {

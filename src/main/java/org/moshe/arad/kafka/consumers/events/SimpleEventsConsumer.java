@@ -44,29 +44,14 @@ public abstract class SimpleEventsConsumer implements Runnable , ISimpleEventCon
 	}
 
 	private void executeConsumers(int numConsumers){
-		
-		while(scheduledExecutor.getQueue().size() < numConsumers){
-			
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-			
-			if(scheduledExecutor.getActiveCount() == numConsumers) continue;
-			
-			scheduledExecutor.scheduleAtFixedRate( () -> {
-				consumer.subscribe(Arrays.asList(topic));
-	    		
+		for(int i=0; i<numConsumers; i++){
+			scheduledExecutor.scheduleAtFixedRate( () -> {			 		
 	    		while (isRunning){
 	                ConsumerRecords<String, String> records = consumer.poll(100);
 	                for (ConsumerRecord<String, String> record : records){
 	                	consumerOperations(record);	                	
 	                }	              	             
-	    		}
-		        consumer.close();
-		        
+	    		}		        		        
 			} , 0, 100, TimeUnit.MILLISECONDS);
 		}
 	}
@@ -74,6 +59,7 @@ public abstract class SimpleEventsConsumer implements Runnable , ISimpleEventCon
 	@Override
 	public void initConsumer(){
 		consumer = new KafkaConsumer<String,String>(simpleConsumerConfig.getProperties());
+		consumer.subscribe(Arrays.asList(topic));
 	}
 	
 	public abstract void consumerOperations(ConsumerRecord<String,String> record);
@@ -113,5 +99,10 @@ public abstract class SimpleEventsConsumer implements Runnable , ISimpleEventCon
 	@Override
 	public void setSimpleConsumerConfig(SimpleConsumerConfig simpleConsumerConfig) {
 		this.simpleConsumerConfig = simpleConsumerConfig;
+	}
+	
+	@Override
+	public void closeConsumer(){
+		consumer.close();
 	}
 }
