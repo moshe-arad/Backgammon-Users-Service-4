@@ -38,7 +38,7 @@ public abstract class SimpleCommandsProducer <T extends ICommand> implements ISi
 	private ConsumerToProducerQueue consumerToProducerQueue;
 	private ScheduledThreadPoolExecutor scheduledExecutor = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(6);
 	private boolean isRunning = true;
-	private static final int PRODUCERS_NUM = 3;
+	private static final int PRODUCERS_NUM = 1;
 	private String topic;
 	
 	private int initialDelay;
@@ -94,23 +94,22 @@ public abstract class SimpleCommandsProducer <T extends ICommand> implements ISi
 		return null;
 	}
 	
-	@SuppressWarnings("unchecked")
 	private void takeMessagesFromConsumersAndPass(int numJobs){
-		while(scheduledExecutor.getQueue().size() < numJobs){
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e1) {
-				e1.printStackTrace();
-			}
-			
-			if(scheduledExecutor.getActiveCount() == numJobs) continue;
+//		while(scheduledExecutor.getQueue().size() < numJobs){
+//			try {
+//				Thread.sleep(1000);
+//			} catch (InterruptedException e1) {
+//				e1.printStackTrace();
+//			}
+//			
+//			if(scheduledExecutor.getActiveCount() == numJobs) continue;
 			
 			scheduledExecutor.scheduleAtFixedRate(() -> {
 //				while(isRunning){
 					doProducerCommandsOperations();
 //				}
 			}, initialDelay, period, timeUnit);
-		}
+//		}
 	}
 	
 	public abstract void doProducerCommandsOperations();

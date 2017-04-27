@@ -1,6 +1,11 @@
 package org.moshe.arad.kafka.consumers.events;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.moshe.arad.kafka.ConsumerToProducerQueue;
@@ -25,11 +30,15 @@ public class FromMongoEventsStoreEventsConsumer extends SimpleEventsConsumer {
 	
 	Logger logger = LoggerFactory.getLogger(FromMongoEventsStoreEventsConsumer.class);
 	
-	private boolean isReadingEvents = false;
+	private ArrayList<BackgammonEvent> fromMongoEventsStoreEventList; 
 	
-	private LinkedList<BackgammonEvent> fromMongoEventsStoreEventList = new LinkedList();
+	private Set<BackgammonEvent> eventsFromMongoSet = new HashSet<>(10000);
+
+	private int totalNumOfEvents;
+	private String uuid;
 	
 	public FromMongoEventsStoreEventsConsumer() {
+
 	}
 	
 	public FromMongoEventsStoreEventsConsumer(SimpleConsumerConfig simpleConsumerConfig, String topic) {
@@ -45,33 +54,35 @@ public class FromMongoEventsStoreEventsConsumer extends SimpleEventsConsumer {
 			String clazz = jsonNode.get("clazz").asText();
 			BackgammonEvent backgammonEvent = null;
 			
-			if(clazz.equals("NewUserCreatedEvent"))
+			if(clazz.equals("StartReadEventsFromMongoEvent"))
 			{
-				NewUserCreatedEvent newUserCreatedEvent = objectMapper.readValue(record.value(), NewUserCreatedEvent.class);
+				logger.info("Recieved the begin read events record, starting reading events from events store...");
+				totalNumOfEvents = jsonNode.get("totalNumOfEvents").asInt();
+				uuid = jsonNode.get("uuid").asText();
+			}
+			else if(clazz.equals("EndReadEventsFromMongoEvent")){					
+				logger.info("Recieved the end read events record, reading events from events store completed...");
+				logger.info("Updating SnapshotAPI with collected events data from mongo events store...");
 				
-				if(newUserCreatedEvent.getServiceId() == -1) {
-					logger.info("Recieved the begin read events record, starting reading events from events store...");
-					fromMongoEventsStoreEventList = new LinkedList();
-					backgammonEvent = null;
+				while(countEventsFromMongoByUuid(uuid) != totalNumOfEvents){
+					Thread.sleep(1000);
 				}
-				else if(newUserCreatedEvent.getServiceId() == -2){
-					logger.info("Recieved the end read events record, reading events from events store completed...");
-					logger.info("Updating SnapshotAPI with collected events data from mongo events store...");
-					snapshotAPI.setFromMongoEventsStoreEventList(fromMongoEventsStoreEventList);
-					logger.info("SnapshotAPI updated...");
-					backgammonEvent = null;
-				}
-				else{
-					backgammonEvent = newUserCreatedEvent;
-				}
+				
+				snapshotAPI.setFromMongoEventsStoreEventList(getSortedListByArrivedDate());
+				snapshotAPI.executeEventsFoldOnEventsFromMongo();
+				logger.info("SnapshotAPI updated...");				
+			}
+			else if(clazz.equals("NewUserCreatedEvent")){
+				NewUserCreatedEvent newUserCreatedEvent = objectMapper.readValue(record.value(), NewUserCreatedEvent.class);
+				backgammonEvent = newUserCreatedEvent;
+				eventsFromMongoSet.add(backgammonEvent);
 			}
 			else if(clazz.equals("NewUserJoinedLobbyEvent")){
 				NewUserJoinedLobbyEvent newUserJoinedLobbyEvent = objectMapper.readValue(record.value(), NewUserJoinedLobbyEvent.class);
 				backgammonEvent = newUserJoinedLobbyEvent;
+				eventsFromMongoSet.add(backgammonEvent);
 			}
-			
 			logger.info("saving event from events store into list, event = " +backgammonEvent);
-			fromMongoEventsStoreEventList.push(backgammonEvent);
 		}
 		catch(Exception ex){
 			logger.error("Failed to save data into redis...");
@@ -82,9 +93,26 @@ public class FromMongoEventsStoreEventsConsumer extends SimpleEventsConsumer {
 
 	@Override
 	public void setConsumerToProducerQueue(ConsumerToProducerQueue consumerToProducerQueue) {
-		// TODO Auto-generated method stub
 		
-	}	
+	}
+	
+	private int countEventsFromMongoByUuid(String uuid){
+		int count = 0;
+		Iterator<BackgammonEvent> it = eventsFromMongoSet.iterator();
+		
+		while(it.hasNext()){
+			BackgammonEvent event = it.next();
+			if(event.getUuid().toString().equals(uuid)) count++;
+		}
+		
+		return count;
+	}
+	
+	public LinkedList<BackgammonEvent> getSortedListByArrivedDate(){
+		fromMongoEventsStoreEventList = new ArrayList<>(eventsFromMongoSet);
+		fromMongoEventsStoreEventList = (ArrayList<BackgammonEvent>) fromMongoEventsStoreEventList.stream().sorted((BackgammonEvent e1, BackgammonEvent e2) -> {return e1.getArrived().compareTo(e2.getArrived());}).collect(Collectors.toList());
+		return new LinkedList<>(fromMongoEventsStoreEventList);
+	}
 }
 
 

@@ -1,15 +1,20 @@
 package org.moshe.arad.local.snapshot;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.moshe.arad.entities.BackgammonUser;
 import org.moshe.arad.kafka.events.BackgammonEvent;
+import org.moshe.arad.kafka.events.NewUserCreatedEvent;
+import org.moshe.arad.kafka.events.NewUserJoinedLobbyEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,11 +22,11 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 @Component
 public class SnapshotAPI {
-
-//	@Autowired
-//	private RedisTemplate<String, String> redisTemplate;
 	
 	@Autowired
 	private RedisTemplate<String, String> redisTemplate;
@@ -52,7 +57,6 @@ public class SnapshotAPI {
 	public Map<String,Set<String>> getLatestSnapshot(){
 		if(!isLastUpdateSnapshotDateExists()) return null;
 		else{
-//			Set<String> usersInLobby = redisTemplate.opsForSet().members("Lobby");
 			Set<String> usersInLobby = redisTemplate.opsForSet().members(LOBBY);
 			Set<String> usersInGame = redisTemplate.opsForSet().members(GAME);
 			Set<String> usersLoggedOut = redisTemplate.opsForSet().members(LOGGED_OUT);
@@ -66,38 +70,47 @@ public class SnapshotAPI {
 		}
 	}
 	
-//	public void updateLatestSnapshot(Map<String,Set<BackgammonUser>> snapshot){
-//		redisTemplate.expire(LOBBY, 1, TimeUnit.NANOSECONDS);
-//		redisTemplate.expire(GAME, 1, TimeUnit.NANOSECONDS);
-//		redisTemplate.expire(LAST_UPDATED, 1, TimeUnit.NANOSECONDS);
-//		
-//		while(redisTemplate.hasKey(LOBBY) || redisTemplate.hasKey(GAME) || redisTemplate.hasKey(LOGGED_OUT)){
-//			try {
-//				Thread.sleep(1000);
-//			} catch (InterruptedException e) {
-//				e.printStackTrace();
-//			}
-//		}
-//		
-//		BackgammonUser[] lobbyUsers = new BackgammonUser[snapshot.get(LOBBY).size()];
-//		snapshot.get(LOBBY).toArray(lobbyUsers);
-//		
-//		redisTemplate.opsForSet().add(LOBBY, lobbyUsers);
-//		
-//		BackgammonUser[] gameUsers = new BackgammonUser[snapshot.get(GAME).size()];
-//		snapshot.get(GAME).toArray(gameUsers);
-//		
-//		redisTemplate.opsForSet().add(GAME, gameUsers);
-//		
-//		BackgammonUser[] loggedOutUsers = new BackgammonUser[snapshot.get(LOGGED_OUT).size()];
-//		snapshot.get(LOGGED_OUT).toArray(loggedOutUsers);
-//		
-//		redisTemplate.opsForSet().add(LOGGED_OUT, loggedOutUsers);
-//	}
+	public void updateLatestSnapshot(Map<String,Set<String>> snapshot){
+		redisTemplate.expire(LOBBY, 1, TimeUnit.NANOSECONDS);
+		redisTemplate.expire(GAME, 1, TimeUnit.NANOSECONDS);
+		redisTemplate.expire(LAST_UPDATED, 1, TimeUnit.NANOSECONDS);
+		
+		while(redisTemplate.hasKey(LOBBY) || redisTemplate.hasKey(GAME) || redisTemplate.hasKey(LOGGED_OUT)){
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		String[] lobbyUsers = new String[snapshot.get(LOBBY).size()];
+		snapshot.get(LOBBY).toArray(lobbyUsers);
+		
+		redisTemplate.opsForSet().add(LOBBY, lobbyUsers);
+		
+		String[] gameUsers = new String[snapshot.get(GAME).size()];
+		snapshot.get(GAME).toArray(gameUsers);
+		
+		redisTemplate.opsForSet().add(GAME, gameUsers);
+		
+		String[] loggedOutUsers = new String[snapshot.get(LOGGED_OUT).size()];
+		snapshot.get(LOGGED_OUT).toArray(loggedOutUsers);
+		
+		redisTemplate.opsForSet().add(LOGGED_OUT, loggedOutUsers);
+	}
 
 	public void executeEventsFoldOnEventsFromMongo(){
-//		Map<String,Set<BackgammonUser>> currentSnapshot = this.getLatestSnapshot();
+		boolean isLatestSnapshotExists = this.getLatestSnapshot()==null ? false:true;
+		Map<String,Set<String>> currentSnapshot;
 		
+		if(isLatestSnapshotExists) currentSnapshot = this.getLatestSnapshot();
+		else {
+			currentSnapshot = new HashMap<>(10000);
+			currentSnapshot.put(LOBBY, new HashSet<>());
+			currentSnapshot.put(GAME, new HashSet<>());
+			currentSnapshot.put(LOGGED_OUT, new HashSet<>());
+		}
+
 		ListIterator<BackgammonEvent> it = this.fromMongoEventsStoreEventList.listIterator();
 		Map<String, BackgammonUser> aboutToEnterLobby = new HashMap<>(10000);
 		
@@ -106,29 +119,35 @@ public class SnapshotAPI {
 		while(it.hasNext()){			
 			BackgammonEvent eventToFold = it.next();
 			logger.info("Event to fold = " + eventToFold);
-//			if(eventToFold.getClazz().equals(NewUserCreatedEvent.class)){
-//				NewUserCreatedEvent newUserCreatedEvent = (NewUserCreatedEvent) eventToFold.getBackgammonEvent();
-//				BackgammonUser backgammonUser  = newUserCreatedEvent.getBackgammonUser();
-//				aboutToEnterLobby.put(backgammonUser.getUserName(), backgammonUser);
-//			}
-//			else if(eventToFold.getClazz().equals(NewUserJoinedLobbyEvent.class)){
-//				NewUserJoinedLobbyEvent newUserJoinedLobbyEvent = (NewUserJoinedLobbyEvent) eventToFold.getBackgammonEvent();
-//				BackgammonUser backgammonUser = newUserJoinedLobbyEvent.getBackgammonUser();
-//				if(aboutToEnterLobby.containsKey(backgammonUser.getUserName())){
-//					aboutToEnterLobby.remove(backgammonUser.getUserName());
-//					currentSnapshot.get(LOBBY).add(backgammonUser);
-//				}
-//				else{
-//					currentSnapshot.get(LOBBY).add(backgammonUser);
-//				}
-//			}
-//			logger.info("Event to folded successfuly = " + eventToFold);
+			if(eventToFold.getClazz().equals("NewUserCreatedEvent")){
+				NewUserCreatedEvent newUserCreatedEvent = (NewUserCreatedEvent) eventToFold;
+				BackgammonUser backgammonUser  = newUserCreatedEvent.getBackgammonUser();
+				aboutToEnterLobby.put(backgammonUser.getUserName(), backgammonUser);
+			}
+			else if(eventToFold.getClazz().equals("NewUserJoinedLobbyEvent")){
+				NewUserJoinedLobbyEvent newUserJoinedLobbyEvent = (NewUserJoinedLobbyEvent) eventToFold;
+				BackgammonUser backgammonUser = newUserJoinedLobbyEvent.getBackgammonUser();
+				if(aboutToEnterLobby.containsKey(backgammonUser.getUserName())){
+					aboutToEnterLobby.remove(backgammonUser.getUserName());
+				}
+				ObjectMapper objectMapper = new ObjectMapper();
+				String backgammonUserJson = null;
+				try {
+					backgammonUserJson = objectMapper.writeValueAsString(backgammonUser);
+				} catch (JsonProcessingException e) {
+					logger.error("Failed convert backgammon user to json...");
+					logger.error(e.getMessage());
+					e.printStackTrace();
+				}
+				currentSnapshot.get(LOBBY).add(backgammonUserJson);
+			}
+			logger.info("Event to folded successfuly = " + eventToFold);
 			//TODO write code about logging out and in game code
 		}
 		
 		logger.info("Events folding into current state completed...");
 		logger.info("Updating current local redis snapshot...");
-//		this.updateLatestSnapshot(currentSnapshot);
+		this.updateLatestSnapshot(currentSnapshot);
 		logger.info("Current local redis snapshot update completed...");
 	}
 	public LinkedList<BackgammonEvent> getFromMongoEventsStoreEventList() {
@@ -137,5 +156,5 @@ public class SnapshotAPI {
 
 	public void setFromMongoEventsStoreEventList(LinkedList<BackgammonEvent> fromMongoEventsStoreEventList) {
 		this.fromMongoEventsStoreEventList = fromMongoEventsStoreEventList;
-	}	
+	}
 }
