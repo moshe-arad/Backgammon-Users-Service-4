@@ -82,7 +82,6 @@ public class FromMongoEventsStoreEventsConsumer extends SimpleEventsConsumer {
 				backgammonEvent = newUserJoinedLobbyEvent;
 				eventsFromMongoSet.add(backgammonEvent);
 			}
-			logger.info("saving event from events store into list, event = " +backgammonEvent);
 		}
 		catch(Exception ex){
 			logger.error("Failed to save data into redis...");

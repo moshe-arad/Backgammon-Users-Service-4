@@ -89,10 +89,10 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 	@Override
 	public void initKafkaCommandsProducers() {
 		logger.info("Initializing pull events commands producer...");
-		initSingleProducer(pullEventsCommandsProducer, 1, 1, TimeUnit.MINUTES, KafkaUtils.PULL_EVENTS_COMMAND_TOPIC, pullEventsCommandsConfig, null);
+		initSingleProducer(pullEventsCommandsProducer, 5, 5, TimeUnit.MINUTES, KafkaUtils.PULL_EVENTS_COMMAND_TOPIC, pullEventsCommandsConfig, null);
 		logger.info("Initialize pull events commands producer, completed...");
 		
-//		executeProducersAndConsumers(Arrays.asList(pullEventsCommandsProducer));
+		executeProducersAndConsumers(Arrays.asList(pullEventsCommandsProducer));
 	}
 
 	@Override

@@ -38,10 +38,12 @@ public class SnapshotAPI {
 	
 	private Logger logger = LoggerFactory.getLogger(SnapshotAPI.class);
 	
+	private Date latestSnapshotDate;
+	
 	private static final String LAST_UPDATED = "lastUpdateSnapshotDate";
 	private static final String LOBBY = "Lobby";
-	private static final String GAME = "Lobby";
-	private static final String LOGGED_OUT = "Lobby";
+	private static final String GAME = "Game";
+	private static final String LOGGED_OUT = "LoggedOut";
 	
 	public boolean isLastUpdateSnapshotDateExists(){
 		return redisTemplate.hasKey(LAST_UPDATED);
@@ -49,7 +51,7 @@ public class SnapshotAPI {
 	
 	public Date getLastUpdateSnapshotDate(){
 		if(isLastUpdateSnapshotDateExists()){
-			return new Date(stringRedisTemplate.opsForValue().get(LAST_UPDATED));
+			return new Date(Long.parseLong(stringRedisTemplate.opsForValue().get(LAST_UPDATED)));
 		}
 		else return null;
 	}
@@ -84,19 +86,23 @@ public class SnapshotAPI {
 		}
 		
 		String[] lobbyUsers = new String[snapshot.get(LOBBY).size()];
-		snapshot.get(LOBBY).toArray(lobbyUsers);
-		
-		redisTemplate.opsForSet().add(LOBBY, lobbyUsers);
-		
+		if(lobbyUsers.length > 0) {
+			snapshot.get(LOBBY).toArray(lobbyUsers);
+			redisTemplate.opsForSet().add(LOBBY, lobbyUsers);
+		}
+				
 		String[] gameUsers = new String[snapshot.get(GAME).size()];
-		snapshot.get(GAME).toArray(gameUsers);
-		
-		redisTemplate.opsForSet().add(GAME, gameUsers);
-		
+		if(gameUsers.length > 0) {
+			snapshot.get(GAME).toArray(gameUsers);
+			redisTemplate.opsForSet().add(GAME, gameUsers);
+		}
+					
 		String[] loggedOutUsers = new String[snapshot.get(LOGGED_OUT).size()];
-		snapshot.get(LOGGED_OUT).toArray(loggedOutUsers);
-		
-		redisTemplate.opsForSet().add(LOGGED_OUT, loggedOutUsers);
+		if(loggedOutUsers.length > 0) {
+			snapshot.get(LOGGED_OUT).toArray(loggedOutUsers);
+			redisTemplate.opsForSet().add(LOGGED_OUT, loggedOutUsers);
+		}
+				
 	}
 
 	public void executeEventsFoldOnEventsFromMongo(){
@@ -147,7 +153,19 @@ public class SnapshotAPI {
 		
 		logger.info("Events folding into current state completed...");
 		logger.info("Updating current local redis snapshot...");
-		this.updateLatestSnapshot(currentSnapshot);
+		
+		try{
+			if(fromMongoEventsStoreEventList.size() > 0){
+				this.updateLatestSnapshot(currentSnapshot);
+				redisTemplate.opsForValue().set(LAST_UPDATED, Long.toString(this.latestSnapshotDate.getTime()));
+			}			
+		}
+		catch (Exception e) {
+			logger.error("Failed to update redis snapshot...");
+			logger.error(e.getMessage());
+			e.printStackTrace();
+		}
+		
 		logger.info("Current local redis snapshot update completed...");
 	}
 	public LinkedList<BackgammonEvent> getFromMongoEventsStoreEventList() {
@@ -156,5 +174,13 @@ public class SnapshotAPI {
 
 	public void setFromMongoEventsStoreEventList(LinkedList<BackgammonEvent> fromMongoEventsStoreEventList) {
 		this.fromMongoEventsStoreEventList = fromMongoEventsStoreEventList;
+	}
+
+	public Date getLatestSnapshotDate() {
+		return latestSnapshotDate;
+	}
+
+	public void setLatestSnapshotDate(Date latestSnapshotDate) {
+		this.latestSnapshotDate = latestSnapshotDate;
 	}
 }

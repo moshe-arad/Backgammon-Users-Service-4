@@ -22,6 +22,7 @@ public class PullEventsCommandsProducer extends SimpleCommandsProducer<PullEvent
 		
 		if(lastUpdate == null) pullEventsCommand = new PullEventsCommand(UUID.randomUUID(), new Date(), true);
 		else pullEventsCommand = new PullEventsCommand(UUID.randomUUID(), lastUpdate, false);
+		snapshotAPI.setLatestSnapshotDate(new Date());
 		sendKafkaMessage(pullEventsCommand);		
 	}	
 }
