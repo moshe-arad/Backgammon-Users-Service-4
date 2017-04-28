@@ -38,7 +38,12 @@ public class Application implements ApplicationRunner {
 	
 	@RequestMapping("/shutdown")
 	public ResponseEntity<String> shutdown(){
-		return this.executeShutdown();		
+		try{
+			return this.executeShutdown();
+		}
+		finally{
+			System.exit(1);
+		}
 	}
 	
 	private ResponseEntity<String> executeShutdown(){

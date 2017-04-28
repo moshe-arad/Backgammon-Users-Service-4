@@ -35,4 +35,8 @@ public interface ISimpleCommandProducer <T extends ICommand> extends ISimpleProd
 	
 	@Override
 	public ScheduledThreadPoolExecutor getScheduledExecutor();
+	
+	public void setPeriodic(boolean isPeriodic);
+	
+	public void setToSaveEvent(boolean isToSaveEvent);
 }

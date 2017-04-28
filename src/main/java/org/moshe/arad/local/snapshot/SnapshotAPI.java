@@ -1,6 +1,5 @@
 package org.moshe.arad.local.snapshot;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -8,8 +7,8 @@ import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import org.moshe.arad.entities.BackgammonUser;
 import org.moshe.arad.kafka.events.BackgammonEvent;
@@ -20,12 +19,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-@Component
+@Repository
 public class SnapshotAPI {
 	
 	@Autowired
@@ -40,10 +39,14 @@ public class SnapshotAPI {
 	
 	private Date latestSnapshotDate;
 	
-	private static final String LAST_UPDATED = "lastUpdateSnapshotDate";
-	private static final String LOBBY = "Lobby";
-	private static final String GAME = "Game";
-	private static final String LOGGED_OUT = "LoggedOut";
+	private Map<String,Set<String>> tempSnapshot;
+	
+	private Map<UUID, Thread> usersLockers = new HashMap<>(100000);
+	
+	public static final String LAST_UPDATED = "lastUpdateSnapshotDate";
+	public static final String LOBBY = "Lobby";
+	public static final String GAME = "Game";
+	public static final String LOGGED_OUT = "LoggedOut";
 	
 	public boolean isLastUpdateSnapshotDateExists(){
 		return redisTemplate.hasKey(LAST_UPDATED);
@@ -105,7 +108,16 @@ public class SnapshotAPI {
 				
 	}
 
-	public void executeEventsFoldOnEventsFromMongo(){
+	public void updateLocalSnapshot(){
+		Map<String,Set<String>> currentSnapshot = doEventsFold();
+		saveCurrentSnapshot(currentSnapshot);
+	}
+	
+	public void saveTempSnapshot(){
+		tempSnapshot = doEventsFold();
+	}
+	
+	private Map<String,Set<String>> doEventsFold(){
 		boolean isLatestSnapshotExists = this.getLatestSnapshot()==null ? false:true;
 		Map<String,Set<String>> currentSnapshot;
 		
@@ -152,22 +164,24 @@ public class SnapshotAPI {
 		}
 		
 		logger.info("Events folding into current state completed...");
-		logger.info("Updating current local redis snapshot...");
-		
+		return currentSnapshot;
+	}
+	
+	private void saveCurrentSnapshot(Map<String,Set<String>> currentSnapshot){
 		try{
 			if(fromMongoEventsStoreEventList.size() > 0){
 				this.updateLatestSnapshot(currentSnapshot);
 				redisTemplate.opsForValue().set(LAST_UPDATED, Long.toString(this.latestSnapshotDate.getTime()));
+				logger.info("Current local redis snapshot update completed...");
 			}			
 		}
 		catch (Exception e) {
 			logger.error("Failed to update redis snapshot...");
 			logger.error(e.getMessage());
 			e.printStackTrace();
-		}
-		
-		logger.info("Current local redis snapshot update completed...");
+		}		
 	}
+	
 	public LinkedList<BackgammonEvent> getFromMongoEventsStoreEventList() {
 		return fromMongoEventsStoreEventList;
 	}
@@ -182,5 +196,21 @@ public class SnapshotAPI {
 
 	public void setLatestSnapshotDate(Date latestSnapshotDate) {
 		this.latestSnapshotDate = latestSnapshotDate;
+	}
+
+	public Map<String, Set<String>> getTempSnapshot() {
+		return tempSnapshot;
+	}
+
+	public void setTempSnapshot(Map<String, Set<String>> tempSnapshot) {
+		this.tempSnapshot = tempSnapshot;
+	}
+
+	public Map<UUID, Thread> getUsersLockers() {
+		return usersLockers;
+	}
+
+	public void setUsersLockers(Map<UUID, Thread> usersLockers) {
+		this.usersLockers = usersLockers;
 	}
 }

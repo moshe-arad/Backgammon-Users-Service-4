@@ -1,5 +1,7 @@
 package org.moshe.arad.kafka.producers.commands;
 
+import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -29,7 +31,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 @Component
 @Scope("prototype")
-public abstract class SimpleCommandsProducer <T extends ICommand> implements ISimpleCommandProducer<T>, Runnable {
+public abstract class SimpleCommandsProducer <T extends ICommand> implements ISimpleCommandProducer<T>, Callable<UUID> {
 
 	private final Logger logger = LoggerFactory.getLogger(SimpleCommandsProducer.class);
 	
@@ -38,12 +40,13 @@ public abstract class SimpleCommandsProducer <T extends ICommand> implements ISi
 	private ConsumerToProducerQueue consumerToProducerQueue;
 	private ScheduledThreadPoolExecutor scheduledExecutor = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(6);
 	private boolean isRunning = true;
-	private static final int PRODUCERS_NUM = 1;
+//	private static final int PRODUCERS_NUM = 1;
 	private String topic;
 	
 	private int initialDelay;
 	private int period;
 	private TimeUnit timeUnit;
+	private boolean isPeriodic;
 	
 	public SimpleCommandsProducer() {
 	}
@@ -66,7 +69,17 @@ public abstract class SimpleCommandsProducer <T extends ICommand> implements ISi
 			ex.printStackTrace();
 		}
 	}
+
 	
+	@Override
+	public UUID call() throws Exception {
+		UUID uuid = UUID.randomUUID();
+		if(isPeriodic) this.takeMessagesFromConsumersAndPassPeriodic(uuid);
+		else takeMessagesFromConsumersAndPass(uuid);
+		return uuid;
+	}
+
+
 	private void sendMessage(T command){
 		logger.info("Creating kafka producer.");
 		Producer<String, String> producer = new KafkaProducer<>(simpleProducerConfig.getProperties());
@@ -94,17 +107,17 @@ public abstract class SimpleCommandsProducer <T extends ICommand> implements ISi
 		return null;
 	}
 	
-	private void takeMessagesFromConsumersAndPass(int numJobs){
-//		for(int i=0; i<numJobs; i++){
+	private void takeMessagesFromConsumersAndPassPeriodic(UUID uuid){
 			scheduledExecutor.scheduleAtFixedRate(() -> {
-//				while(isRunning){
-					doProducerCommandsOperations();
-//				}
+					doProducerCommandsOperations(uuid);
 			}, initialDelay, period, timeUnit);
-//		}
 	}
 	
-	public abstract void doProducerCommandsOperations();
+	private void takeMessagesFromConsumersAndPass(UUID uuid){
+		doProducerCommandsOperations(uuid);
+	}
+	
+	public abstract void doProducerCommandsOperations(UUID uuid);
 	
 	public boolean isRunning() {
 		return isRunning;
@@ -116,11 +129,6 @@ public abstract class SimpleCommandsProducer <T extends ICommand> implements ISi
 
 	public ScheduledThreadPoolExecutor getScheduledExecutor() {
 		return scheduledExecutor;
-	}
-
-	@Override
-	public void run() {
-		this.takeMessagesFromConsumersAndPass(PRODUCERS_NUM);		
 	}
 
 	public SimpleProducerConfig getSimpleProducerConfig() {
@@ -158,7 +166,7 @@ public abstract class SimpleCommandsProducer <T extends ICommand> implements ISi
 	public int getPeriod() {
 		return period;
 	}
-
+	
 	public void setPeriod(int period) {
 		this.period = period;
 	}
@@ -166,5 +174,14 @@ public abstract class SimpleCommandsProducer <T extends ICommand> implements ISi
 	@Override
 	public void setTimeUnit(TimeUnit timeUnit) {
 		this.timeUnit = timeUnit;
+	}
+
+	public boolean isPeriodic() {
+		return isPeriodic;
+	}
+
+	@Override
+	public void setPeriodic(boolean isPeriodic) {
+		this.isPeriodic = isPeriodic;
 	}
 }

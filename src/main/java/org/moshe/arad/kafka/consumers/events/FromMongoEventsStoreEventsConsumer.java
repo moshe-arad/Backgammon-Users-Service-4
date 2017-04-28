@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -17,12 +18,14 @@ import org.moshe.arad.local.snapshot.SnapshotAPI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Component
+@Scope("prototype")
 public class FromMongoEventsStoreEventsConsumer extends SimpleEventsConsumer {
 	
 	@Autowired
@@ -36,6 +39,7 @@ public class FromMongoEventsStoreEventsConsumer extends SimpleEventsConsumer {
 
 	private int totalNumOfEvents;
 	private String uuid;
+	private boolean isToSaveEvents;
 	
 	public FromMongoEventsStoreEventsConsumer() {
 
@@ -59,6 +63,7 @@ public class FromMongoEventsStoreEventsConsumer extends SimpleEventsConsumer {
 				logger.info("Recieved the begin read events record, starting reading events from events store...");
 				totalNumOfEvents = jsonNode.get("totalNumOfEvents").asInt();
 				uuid = jsonNode.get("uuid").asText();
+				isToSaveEvents = jsonNode.get("toSaveEvents").asBoolean();
 			}
 			else if(clazz.equals("EndReadEventsFromMongoEvent")){					
 				logger.info("Recieved the end read events record, reading events from events store completed...");
@@ -69,8 +74,18 @@ public class FromMongoEventsStoreEventsConsumer extends SimpleEventsConsumer {
 				}
 				
 				snapshotAPI.setFromMongoEventsStoreEventList(getSortedListByArrivedDate());
-				snapshotAPI.executeEventsFoldOnEventsFromMongo();
-				logger.info("SnapshotAPI updated...");				
+				if(isToSaveEvents){
+					snapshotAPI.updateLocalSnapshot();
+					logger.info("SnapshotAPI updated...");
+				}
+				else{
+					synchronized (snapshotAPI.getUsersLockers().get(UUID.fromString((uuid)))) {
+						snapshotAPI.saveTempSnapshot();
+						logger.info("Temporary snapshot created...");
+						snapshotAPI.getUsersLockers().get(UUID.fromString((uuid))).notifyAll();						
+					}					
+					snapshotAPI.getUsersLockers().remove(UUID.fromString((uuid)));
+				}								
 			}
 			else if(clazz.equals("NewUserCreatedEvent")){
 				NewUserCreatedEvent newUserCreatedEvent = objectMapper.readValue(record.value(), NewUserCreatedEvent.class);

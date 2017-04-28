@@ -31,7 +31,7 @@ import org.springframework.stereotype.Component;
 public abstract class SimpleCommandsConsumer implements Runnable, ISimpleCommandConsumer {
 
 	Logger logger = LoggerFactory.getLogger(SimpleCommandsConsumer.class);
-	private static final int CONSUMERS_NUM = 3;
+//	private static final int CONSUMERS_NUM = 3;
 	
 	private Consumer<String, String> consumer;
 	private boolean isRunning = true;
@@ -44,18 +44,31 @@ public abstract class SimpleCommandsConsumer implements Runnable, ISimpleCommand
 	public SimpleCommandsConsumer() {
 	}
 
-	private void executeConsumers(int numConsumers){
-		for(int i=0; i<numConsumers; i++){
-			scheduledExecutor.scheduleAtFixedRate( () -> {					    		
-	    		while (isRunning){
-	                ConsumerRecords<String, String> records = consumer.poll(100);
-	                for (ConsumerRecord<String, String> record : records){
-	                	consumerOperations(record);	                	
-	                }	              	             
-	    		}		       		        
+	private void executeConsumers(){
+//		for(int i=0; i<numConsumers; i++){
+			scheduledExecutor.scheduleAtFixedRate( () -> {
+				try{
+					while (isRunning){
+		                ConsumerRecords<String, String> records = consumer.poll(100);
+		                for (ConsumerRecord<String, String> record : records){
+		                	consumerOperations(record);	                	
+		                }
+		                consumer.commitAsync();
+		    		}
+				}
+				catch (Exception e) {
+					logger.error("Failed while consuming data...");
+					logger.error(e.getMessage());
+					e.printStackTrace();
+				}
+				finally {
+					consumer.commitSync();
+					consumer.close();
+				}
+	    				       		        
 			} , 0, 100, TimeUnit.MILLISECONDS);
-		}
 	}
+//	}
 	
 	@Override
 	public void initConsumer(){
@@ -67,7 +80,7 @@ public abstract class SimpleCommandsConsumer implements Runnable, ISimpleCommand
 	
 	@Override
 	public void run() {
-		this.executeConsumers(CONSUMERS_NUM);
+		this.executeConsumers();
 	}
 
 	public boolean isRunning() {
