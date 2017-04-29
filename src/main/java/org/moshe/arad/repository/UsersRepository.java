@@ -11,6 +11,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 
+import javax.annotation.PostConstruct;
+
 import org.moshe.arad.entities.BackgammonUser;
 import org.moshe.arad.kafka.KafkaUtils;
 import org.moshe.arad.kafka.producers.commands.ISimpleCommandProducer;
@@ -40,6 +42,14 @@ public class UsersRepository {
 	private ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(4);
 	
 	private Logger logger = LoggerFactory.getLogger(UsersRepository.class);
+	
+	public UsersRepository() {
+	}
+	
+	@PostConstruct
+	public void initUpdateSnapshotLocker(){
+		snapshotAPI.getUpdateSnapshotLocker().add(pullEventsCommandsProducer);
+	}
 	
 	public boolean isUserExists(BackgammonUser user) throws InterruptedException {
 		logger.info("Preparing command producer...");

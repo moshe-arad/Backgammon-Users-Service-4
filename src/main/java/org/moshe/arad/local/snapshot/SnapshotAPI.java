@@ -43,6 +43,8 @@ public class SnapshotAPI {
 	
 	private Map<UUID, Thread> usersLockers = new HashMap<>(100000);
 	
+	private Set<Object> updateSnapshotLocker = new HashSet<>(100000);
+	
 	public static final String LAST_UPDATED = "lastUpdateSnapshotDate";
 	public static final String LOBBY = "Lobby";
 	public static final String GAME = "Game";
@@ -212,5 +214,13 @@ public class SnapshotAPI {
 
 	public void setUsersLockers(Map<UUID, Thread> usersLockers) {
 		this.usersLockers = usersLockers;
+	}
+	
+	public Set<Object> getUpdateSnapshotLocker() {
+		return updateSnapshotLocker;
+	}
+
+	public void setUpdateSnapshotLocker(Set<Object> updateSnapshotLocker) {
+		this.updateSnapshotLocker = updateSnapshotLocker;
 	}
 }

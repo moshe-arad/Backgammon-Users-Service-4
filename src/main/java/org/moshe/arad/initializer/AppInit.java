@@ -102,7 +102,7 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 	@Override
 	public void initKafkaCommandsProducers() {
 		logger.info("Initializing pull events commands producer...");
-		initSingleProducer(pullEventsCommandsProducer, 15, 15, TimeUnit.MINUTES, KafkaUtils.PULL_EVENTS_COMMAND_TOPIC, pullEventsCommandsConfig, null);
+		initSingleProducer(pullEventsCommandsProducer, 5, 5, TimeUnit.MINUTES, KafkaUtils.PULL_EVENTS_COMMAND_TOPIC, pullEventsCommandsConfig, null);
 		logger.info("Initialize pull events commands producer, completed...");
 		
 		executeCallablesProducersAndConsumers(Arrays.asList(pullEventsCommandsProducer));
@@ -141,7 +141,7 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 	}
 	
 	private void initSingleProducer(ISimpleCommandProducer producer, int period, int initialDelay, TimeUnit timeUnit, String topic, SimpleProducerConfig consumerConfig, ConsumerToProducerQueue queue) {
-		producer.setPeriodic(true);
+		producer.setPeriodic(false);
 		producer.setToSaveEvent(true);
 		producer.setPeriod(period);
 		producer.setInitialDelay(initialDelay);

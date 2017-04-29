@@ -3,14 +3,14 @@ package org.moshe.arad.kafka.commands;
 import java.util.Date;
 import java.util.UUID;
 
-public class PullEventsCommand implements ICommand {
+public class PullEventCommand implements ICommand {
 
 	private UUID uuid;
 	private Date fromDate;
 	private boolean isIgnoreDate;
 	private boolean isToSaveEvents;
  
-	public PullEventsCommand(UUID uuid, Date fromDate, boolean isIgnoreDate, boolean isToSaveEvents) {
+	public PullEventCommand(UUID uuid, Date fromDate, boolean isIgnoreDate, boolean isToSaveEvents) {
 		super();
 		this.uuid = uuid;
 		this.fromDate = fromDate;

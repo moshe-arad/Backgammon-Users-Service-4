@@ -14,6 +14,7 @@ import org.moshe.arad.kafka.consumers.config.SimpleConsumerConfig;
 import org.moshe.arad.kafka.events.BackgammonEvent;
 import org.moshe.arad.kafka.events.NewUserCreatedEvent;
 import org.moshe.arad.kafka.events.NewUserJoinedLobbyEvent;
+import org.moshe.arad.kafka.producers.commands.PullEventsCommandsProducer;
 import org.moshe.arad.local.snapshot.SnapshotAPI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,6 +78,16 @@ public class FromMongoEventsStoreEventsConsumer extends SimpleEventsConsumer {
 				if(isToSaveEvents){
 					snapshotAPI.updateLocalSnapshot();
 					logger.info("SnapshotAPI updated...");
+					
+					Iterator<Object> it = snapshotAPI.getUpdateSnapshotLocker().iterator();
+					
+					while(it.hasNext()){
+						Object locker = it.next();
+						synchronized (locker) {
+							PullEventsCommandsProducer.setUpdating(false);
+							locker.notifyAll();
+						}
+					}					
 				}
 				else{
 					synchronized (snapshotAPI.getUsersLockers().get(UUID.fromString((uuid)))) {

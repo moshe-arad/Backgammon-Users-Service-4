@@ -3,7 +3,7 @@ package org.moshe.arad.kafka.producers.commands;
 import java.util.Date;
 import java.util.UUID;
 
-import org.moshe.arad.kafka.commands.PullEventsCommand;
+import org.moshe.arad.kafka.commands.PullEventCommand;
 import org.moshe.arad.local.snapshot.SnapshotAPI;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
@@ -12,28 +12,41 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Scope("prototype")
-public class PullEventsCommandsProducer extends SimpleCommandsProducer<PullEventsCommand>{
+public class PullEventsCommandsProducer extends SimpleCommandsProducer<PullEventCommand>{
 
 	@Autowired
 	private SnapshotAPI snapshotAPI;
 	
 	private boolean isToSaveEvents;	
 	
+	private static boolean isUpdating = false;
+	
 	@Override
 	public void doProducerCommandsOperations(UUID uuid) {
-		PullEventsCommand pullEventsCommand;
-		Date lastUpdate = snapshotAPI.getLastUpdateSnapshotDate();		
+		PullEventCommand pullEventCommand;
+		Date lastUpdate = snapshotAPI.getLastUpdateSnapshotDate();				
 		
-		if(lastUpdate == null){
-			if(isToSaveEvents) pullEventsCommand = new PullEventsCommand(uuid, new Date(), true, true);
-			else pullEventsCommand = new PullEventsCommand(uuid, new Date(), true, false);
+		if(isToSaveEvents) {			
+			if(lastUpdate == null) pullEventCommand = new PullEventCommand(uuid, new Date(), true, true);
+			else pullEventCommand = new PullEventCommand(uuid, lastUpdate, false, true);
+			snapshotAPI.setLatestSnapshotDate(new Date());
+			isUpdating = true;
+			sendKafkaMessage(pullEventCommand);
 		}
-		else{			
-			if(isToSaveEvents) pullEventsCommand = new PullEventsCommand(uuid, lastUpdate, false, true);
-			else pullEventsCommand = new PullEventsCommand(uuid, lastUpdate, false, false);
+		else{
+			if(isUpdating){
+				synchronized (this) {
+					try {
+						this.wait();
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}				
+			}
+			if(lastUpdate == null) pullEventCommand = new PullEventCommand(uuid, new Date(), true, false);
+			else pullEventCommand = new PullEventCommand(uuid, lastUpdate, false, false);
+			sendKafkaMessage(pullEventCommand);			
 		}
-		snapshotAPI.setLatestSnapshotDate(new Date());
-		sendKafkaMessage(pullEventsCommand);		
 	}
 	
 	public boolean isToSaveEvent() {
@@ -44,4 +57,36 @@ public class PullEventsCommandsProducer extends SimpleCommandsProducer<PullEvent
 	public void setToSaveEvent(boolean isToSaveEvent) {
 		this.isToSaveEvents = isToSaveEvent;
 	}
+
+	public static boolean isUpdating() {
+		return isUpdating;
+	}
+
+	public static void setUpdating(boolean isUpdating) {
+		PullEventsCommandsProducer.isUpdating = isUpdating;
+	}
+
+	public SnapshotAPI getSnapshotAPI() {
+		return snapshotAPI;
+	}
 }
+
+
+
+//if(lastUpdate == null){
+//if(isToSaveEvents) {
+//	//TODO need to lock while updating
+//	pullEventCommand = new PullEventCommand(uuid, new Date(), true, true);
+//}
+//else pullEventCommand = new PullEventCommand(uuid, new Date(), true, false);
+//}
+//else{			
+//if(isToSaveEvents){
+//	//TODO need to lock while updating
+//	pullEventCommand = new PullEventCommand(uuid, lastUpdate, false, true);
+//}
+//else pullEventCommand = new PullEventCommand(uuid, lastUpdate, false, false);
+//}
+//
+//snapshotAPI.setLatestSnapshotDate(new Date());
+//sendKafkaMessage(pullEventCommand);	
