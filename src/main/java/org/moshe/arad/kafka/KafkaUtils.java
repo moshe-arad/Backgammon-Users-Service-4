@@ -21,4 +21,5 @@ public class KafkaUtils {
 	public static final String FROM_MONGO_TO_USERS_SERVICES = "From-Mongo-To-Users-Service";
 	public static final String FROM_MONGO_TO_USERS_SERVICE_GROUP = "FromMongoToUsersServiceGroup";
 	public static final String FROM_MONGO_TO_USERS_SERVICE_DESERIALIZER = "org.moshe.arad.kafka.deserializers.FromMongoEventsStoreEventConfig";
+	public static final String NEW_USER_CREATED_ACK_EVENT_TOPIC = "New-User-Created-Ack-Event";
 }

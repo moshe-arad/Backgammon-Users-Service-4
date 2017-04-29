@@ -14,6 +14,7 @@ import org.moshe.arad.kafka.commands.ICommand;
 import org.moshe.arad.kafka.producers.config.SimpleProducerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -35,6 +36,7 @@ public abstract class SimpleCommandsProducer <T extends ICommand> implements ISi
 
 	private final Logger logger = LoggerFactory.getLogger(SimpleCommandsProducer.class);
 	
+	@Autowired
 	private SimpleProducerConfig simpleProducerConfig;
 	
 	private ConsumerToProducerQueue consumerToProducerQueue;
@@ -47,6 +49,8 @@ public abstract class SimpleCommandsProducer <T extends ICommand> implements ISi
 	private int period;
 	private TimeUnit timeUnit;
 	private boolean isPeriodic;
+	
+	private UUID uuid;
 	
 	public SimpleCommandsProducer() {
 	}
@@ -183,5 +187,14 @@ public abstract class SimpleCommandsProducer <T extends ICommand> implements ISi
 	@Override
 	public void setPeriodic(boolean isPeriodic) {
 		this.isPeriodic = isPeriodic;
+	}
+
+	public UUID getUuid() {
+		uuid = generateUUID();
+		return uuid;
+	}
+
+	public void setUuid(UUID uuid) {
+		this.uuid = uuid;
 	}
 }

@@ -39,7 +39,7 @@ public abstract class SimpleCommandsConsumer implements Runnable, ISimpleCommand
 	private String topic;
 	private SimpleConsumerConfig simpleConsumerConfig;
 	
-	private ConsumerToProducerQueue consumerToProducerQueue;
+//	private ConsumerToProducerQueue consumerToProducerQueue;
 	
 	public SimpleCommandsConsumer() {
 	}
@@ -115,14 +115,14 @@ public abstract class SimpleCommandsConsumer implements Runnable, ISimpleCommand
 		this.simpleConsumerConfig = simpleConsumerConfig;
 	}
 	
-	public ConsumerToProducerQueue getConsumerToProducerQueue() {
-		return consumerToProducerQueue;
-	}
-
-	@Override
-	public void setConsumerToProducerQueue(ConsumerToProducerQueue consumerToProducerQueue) {
-		this.consumerToProducerQueue = consumerToProducerQueue;
-	}	
+//	public ConsumerToProducerQueue getConsumerToProducerQueue() {
+//		return consumerToProducerQueue;
+//	}
+//
+//	@Override
+//	public void setConsumerToProducerQueue(ConsumerToProducerQueue consumerToProducerQueue) {
+//		this.consumerToProducerQueue = consumerToProducerQueue;
+//	}	
 	
 	@Override
 	public void closeConsumer(){

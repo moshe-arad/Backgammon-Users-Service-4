@@ -21,23 +21,23 @@ import org.moshe.arad.kafka.producers.config.SimpleProducerConfig;
 import org.moshe.arad.local.snapshot.SnapshotAPI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Repository;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Repository
-public class UsersRepository {
+public class UsersRepository implements ApplicationContextAware {
 
 	@Autowired
 	private SnapshotAPI snapshotAPI;
 	
 	@Autowired
-	private PullEventsCommandsProducer pullEventsCommandsProducer;
-	
-	@Autowired
-	private SimpleProducerConfig pullEventsCommandsConfig;
+	private ApplicationContext context;
 	
 	private ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(4);
 	
@@ -53,7 +53,9 @@ public class UsersRepository {
 	
 	public boolean isUserExists(BackgammonUser user) throws InterruptedException {
 		logger.info("Preparing command producer...");
-		initSingleProducer(pullEventsCommandsProducer, KafkaUtils.PULL_EVENTS_COMMAND_TOPIC, pullEventsCommandsConfig);		
+		PullEventsCommandsProducer pullEventsCommandsProducer = context.getBean(PullEventsCommandsProducer.class);
+		initSingleProducer(pullEventsCommandsProducer, KafkaUtils.PULL_EVENTS_COMMAND_TOPIC);		
+		
 		Future<UUID> uuidFuture = threadPoolExecutor.submit(pullEventsCommandsProducer);
 		logger.info("command submitted...");
 		
@@ -82,11 +84,10 @@ public class UsersRepository {
 	}
 	
 	
-	private void initSingleProducer(ISimpleCommandProducer producer, String topic, SimpleProducerConfig consumerConfig) {
+	private void initSingleProducer(ISimpleCommandProducer producer, String topic) {
 		producer.setPeriodic(false);
 		producer.setToSaveEvent(false);
 		producer.setTopic(topic);
-		producer.setSimpleProducerConfig(consumerConfig);	
 	}
 	
 	private boolean isUserExistsInSnapshot(BackgammonUser user, Map<String, Set<String>> snapshot){
@@ -112,5 +113,10 @@ public class UsersRepository {
 		}
 		
 		return false;
+	}
+
+	@Override
+	public void setApplicationContext(ApplicationContext context) throws BeansException {
+		this.context = context;
 	}
 }

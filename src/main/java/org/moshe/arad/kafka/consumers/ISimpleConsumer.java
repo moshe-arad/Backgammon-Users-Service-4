@@ -16,8 +16,6 @@ public interface ISimpleConsumer {
 	public void setRunning(boolean isRunning);
 	
 	public ScheduledThreadPoolExecutor getScheduledExecutor();
-
-	public void setConsumerToProducerQueue(ConsumerToProducerQueue consumerToProducerQueue);
 	
 	public void closeConsumer();
 }

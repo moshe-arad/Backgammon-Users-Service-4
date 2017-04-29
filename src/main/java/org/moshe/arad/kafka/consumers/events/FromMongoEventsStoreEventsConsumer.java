@@ -90,6 +90,7 @@ public class FromMongoEventsStoreEventsConsumer extends SimpleEventsConsumer {
 					}					
 				}
 				else{
+					logger.info("*******************" + snapshotAPI.getUsersLockers().toString());
 					synchronized (snapshotAPI.getUsersLockers().get(UUID.fromString((uuid)))) {
 						snapshotAPI.saveTempSnapshot();
 						logger.info("Temporary snapshot created...");
@@ -114,11 +115,6 @@ public class FromMongoEventsStoreEventsConsumer extends SimpleEventsConsumer {
 			logger.error(ex.getMessage());
 			ex.printStackTrace();
 		}
-	}
-
-	@Override
-	public void setConsumerToProducerQueue(ConsumerToProducerQueue consumerToProducerQueue) {
-		
 	}
 	
 	private int countEventsFromMongoByUuid(String uuid){

@@ -15,6 +15,7 @@ import org.moshe.arad.kafka.consumers.config.CreateNewUserCommandConfig;
 import org.moshe.arad.kafka.consumers.config.FromMongoEventsStoreEventConfig;
 import org.moshe.arad.kafka.consumers.config.SimpleConsumerConfig;
 import org.moshe.arad.kafka.consumers.events.FromMongoEventsStoreEventsConsumer;
+import org.moshe.arad.kafka.events.NewUserCreatedAckEvent;
 import org.moshe.arad.kafka.events.NewUserCreatedEvent;
 import org.moshe.arad.kafka.producers.ISimpleProducer;
 import org.moshe.arad.kafka.producers.commands.ISimpleCommandProducer;
@@ -33,7 +34,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class AppInit implements ApplicationContextAware, IAppInitializer {
 	
-//	@Autowired
 	private CreateNewUserCommandsConsumer createNewUserCommandConsumer;
 	
 	@Autowired
@@ -43,25 +43,23 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 	private SimpleEventsProducer<NewUserCreatedEvent> newUserCreatedEventsProducer;
 	
 	@Autowired
-	private SimpleProducerConfig newUserCreatedEventConfig;
-	
-	@Autowired
 	private PullEventsCommandsProducer pullEventsCommandsProducer;
 	
-	@Autowired
-	private SimpleProducerConfig pullEventsCommandsConfig;
-	
-//	@Autowired
 	private FromMongoEventsStoreEventsConsumer fromMongoEventsStoreEventsConsumer;
 
 	@Autowired
 	private FromMongoEventsStoreEventConfig fromMongoEventsStoreEventConfig;
 	
+	@Autowired
+	private SimpleEventsProducer<NewUserCreatedAckEvent> newUserCreatedAckEventsProducer;
+	
 	private ApplicationContext context;
 	
 	private ExecutorService executor = Executors.newFixedThreadPool(4);
 	
-	private ConsumerToProducerQueue createUserConsumerToProducerQueue;
+	private ConsumerToProducerQueue toLobbyServiceQueue;
+	
+	private ConsumerToProducerQueue toFrontServiceQueue;
 	
 	private Logger logger = LoggerFactory.getLogger(AppInit.class);
 	
@@ -73,13 +71,16 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 	
 	@Override
 	public void initKafkaCommandsConsumers() {	
-		createUserConsumerToProducerQueue = context.getBean(ConsumerToProducerQueue.class);
+		toLobbyServiceQueue = context.getBean(ConsumerToProducerQueue.class);
+		toFrontServiceQueue = context.getBean(ConsumerToProducerQueue.class);
 		
 		for(int i=0; i<NUM_CONSUMERS; i++){
 			createNewUserCommandConsumer = context.getBean(CreateNewUserCommandsConsumer.class);
 			
-			logger.info("Initializing create new user command consumer...");
-			initSingleConsumer(createNewUserCommandConsumer, KafkaUtils.CREATE_NEW_USER_COMMAND_TOPIC, createNewUserCommandConfig, createUserConsumerToProducerQueue);
+			logger.info("Initializing create new user command consumer...");			
+			createNewUserCommandConsumer.setToLobbyServiceQueue(toLobbyServiceQueue);
+			createNewUserCommandConsumer.setToFrontServiceQueue(toFrontServiceQueue);			
+			initSingleConsumer(createNewUserCommandConsumer, KafkaUtils.CREATE_NEW_USER_COMMAND_TOPIC, createNewUserCommandConfig);			
 			logger.info("Initialize create new user command consumer, completed...");
 			
 			executeRunnablesProducersAndConsumers(Arrays.asList(createNewUserCommandConsumer));
@@ -92,7 +93,7 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 		for(int i=0; i<NUM_CONSUMERS; i++){
 			fromMongoEventsStoreEventsConsumer = context.getBean(FromMongoEventsStoreEventsConsumer.class);
 			logger.info("Initializing from mongo events store event consumer...");
-			initSingleConsumer(fromMongoEventsStoreEventsConsumer, KafkaUtils.FROM_MONGO_TO_USERS_SERVICES, fromMongoEventsStoreEventConfig, null);
+			initSingleConsumer(fromMongoEventsStoreEventsConsumer, KafkaUtils.FROM_MONGO_TO_USERS_SERVICES, fromMongoEventsStoreEventConfig);
 			logger.info("Initialize from mongo events store event consumer, completed...");
 			
 			executeRunnablesProducersAndConsumers(Arrays.asList(fromMongoEventsStoreEventsConsumer));
@@ -102,7 +103,7 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 	@Override
 	public void initKafkaCommandsProducers() {
 		logger.info("Initializing pull events commands producer...");
-		initSingleProducer(pullEventsCommandsProducer, 5, 5, TimeUnit.MINUTES, KafkaUtils.PULL_EVENTS_COMMAND_TOPIC, pullEventsCommandsConfig, null);
+		initSingleProducer(pullEventsCommandsProducer, 15, 15, TimeUnit.MINUTES, KafkaUtils.PULL_EVENTS_COMMAND_TOPIC, null);
 		logger.info("Initialize pull events commands producer, completed...");
 		
 		executeCallablesProducersAndConsumers(Arrays.asList(pullEventsCommandsProducer));
@@ -110,11 +111,12 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 
 	@Override
 	public void initKafkaEventsProducers() {		
-		logger.info("Initializing new user created events producer...");
-		initSingleProducer(newUserCreatedEventsProducer, 500, 0, TimeUnit.MILLISECONDS, KafkaUtils.NEW_USER_CREATED_EVENT_TOPIC, newUserCreatedEventConfig, createUserConsumerToProducerQueue);
+		logger.info("Initializing new user created events producer...");		
+		initSingleProducer(newUserCreatedAckEventsProducer, 500, 0, TimeUnit.MILLISECONDS, KafkaUtils.NEW_USER_CREATED_ACK_EVENT_TOPIC, toFrontServiceQueue);		
+		initSingleProducer(newUserCreatedEventsProducer, 500, 0, TimeUnit.MILLISECONDS, KafkaUtils.NEW_USER_CREATED_EVENT_TOPIC, toLobbyServiceQueue);
 		logger.info("Initialize new user created events producer, completed...");
 		
-		executeRunnablesProducersAndConsumers(Arrays.asList(newUserCreatedEventsProducer));
+		executeRunnablesProducersAndConsumers(Arrays.asList(newUserCreatedEventsProducer, newUserCreatedAckEventsProducer));
 	}
 
 	@Override
@@ -133,30 +135,27 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 		this.context = context;
 	}
 	
-	private void initSingleConsumer(ISimpleConsumer consumer, String topic, SimpleConsumerConfig consumerConfig, ConsumerToProducerQueue queue) {
+	private void initSingleConsumer(ISimpleConsumer consumer, String topic, SimpleConsumerConfig consumerConfig) {
 		consumer.setTopic(topic);
 		consumer.setSimpleConsumerConfig(consumerConfig);
 		consumer.initConsumer();	
-		consumer.setConsumerToProducerQueue(queue);
 	}
 	
-	private void initSingleProducer(ISimpleCommandProducer producer, int period, int initialDelay, TimeUnit timeUnit, String topic, SimpleProducerConfig consumerConfig, ConsumerToProducerQueue queue) {
-		producer.setPeriodic(false);
+	private void initSingleProducer(ISimpleCommandProducer producer, int period, int initialDelay, TimeUnit timeUnit, String topic, ConsumerToProducerQueue queue) {
+		producer.setPeriodic(true);
 		producer.setToSaveEvent(true);
 		producer.setPeriod(period);
 		producer.setInitialDelay(initialDelay);
 		producer.setTimeUnit(timeUnit);
-		producer.setTopic(topic);
-		producer.setSimpleProducerConfig(consumerConfig);	
+		producer.setTopic(topic);	
 		producer.setConsumerToProducerQueue(queue);
 	}
 	
-	private void initSingleProducer(ISimpleEventProducer producer, int period, int initialDelay, TimeUnit timeUnit, String topic, SimpleProducerConfig consumerConfig, ConsumerToProducerQueue queue) {
+	private void initSingleProducer(ISimpleEventProducer producer, int period, int initialDelay, TimeUnit timeUnit, String topic, ConsumerToProducerQueue queue) {
 		producer.setPeriod(period);
 		producer.setInitialDelay(initialDelay);
 		producer.setTimeUnit(timeUnit);
-		producer.setTopic(topic);
-		producer.setSimpleProducerConfig(consumerConfig);	
+		producer.setTopic(topic);	
 		producer.setConsumerToProducerQueue(queue);
 	}
 	

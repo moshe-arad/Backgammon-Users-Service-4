@@ -4,7 +4,9 @@ import java.io.IOException;
 import java.util.Date;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.moshe.arad.kafka.ConsumerToProducerQueue;
 import org.moshe.arad.kafka.commands.CreateNewUserCommand;
+import org.moshe.arad.kafka.events.NewUserCreatedAckEvent;
 import org.moshe.arad.kafka.events.NewUserCreatedEvent;
 import org.moshe.arad.repository.UsersRepository;
 import org.slf4j.Logger;
@@ -24,11 +26,16 @@ public class CreateNewUserCommandsConsumer extends SimpleCommandsConsumer {
 	
 	private Logger logger = LoggerFactory.getLogger(CreateNewUserCommandsConsumer.class);
 	
+	private ConsumerToProducerQueue toLobbyServiceQueue;
+	
+	private ConsumerToProducerQueue toFrontServiceQueue;
+	
 	public CreateNewUserCommandsConsumer() {
 	}
 
 	@Override
 	public void consumerOperations(ConsumerRecord<String, String> record) {
+		NewUserCreatedAckEvent newUserCreatedAckEvent = null;
 		CreateNewUserCommand createNewUserCommand = convertJsonBlobIntoEvent(record.value());
 		logger.info("Create New User Command record recieved, " + record.value());
     	
@@ -41,14 +48,22 @@ public class CreateNewUserCommandsConsumer extends SimpleCommandsConsumer {
 				logger.error("User already exists in system....");
 				logger.error("*************************************");
 				logger.error("*************************************");
+								
+				newUserCreatedAckEvent = new NewUserCreatedAckEvent(createNewUserCommand.getUuid(), 1, 1, new Date(), "NewUserCreatedAckEvent", false);
 			}
 			else{
 				logger.info("Creating New User Created Event... ");
 				NewUserCreatedEvent newUserCreatedEvent = new NewUserCreatedEvent(createNewUserCommand.getUuid(), 
 						1, 1, new Date(), "NewUserCreatedEvent", createNewUserCommand.getBackgammonUser()); 
-		    	getConsumerToProducerQueue().getEventsQueue().put(newUserCreatedEvent);
+		    	toLobbyServiceQueue.getEventsQueue().put(newUserCreatedEvent);
 		    	logger.info("Event created and passed to consumer...");
+		    			
+				newUserCreatedAckEvent = new NewUserCreatedAckEvent(createNewUserCommand.getUuid(), 1, 1, new Date(), "NewUserCreatedAckEvent", true);				
 			}
+			
+			logger.info("Creating New User Created Ack Event... ");
+			toFrontServiceQueue.getEventsQueue().put(newUserCreatedAckEvent);
+			logger.info("Ack Reply was send to front service...");
 		}
 		catch (Exception e) {
 			logger.error("Failed to create new user, please try again...");
@@ -68,6 +83,22 @@ public class CreateNewUserCommandsConsumer extends SimpleCommandsConsumer {
 		}
 		return null;
 	}
+
+	public ConsumerToProducerQueue getToLobbyServiceQueue() {
+		return toLobbyServiceQueue;
+	}
+
+	public void setToLobbyServiceQueue(ConsumerToProducerQueue toLobbyServiceQueue) {
+		this.toLobbyServiceQueue = toLobbyServiceQueue;
+	}
+
+	public ConsumerToProducerQueue getToFrontServiceQueue() {
+		return toFrontServiceQueue;
+	}
+
+	public void setToFrontServiceQueue(ConsumerToProducerQueue toFrontServiceQueue) {
+		this.toFrontServiceQueue = toFrontServiceQueue;
+	}	
 }
 
 

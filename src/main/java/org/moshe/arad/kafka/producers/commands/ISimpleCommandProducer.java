@@ -1,5 +1,6 @@
 package org.moshe.arad.kafka.producers.commands;
 
+import java.util.UUID;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -39,4 +40,8 @@ public interface ISimpleCommandProducer <T extends ICommand> extends ISimpleProd
 	public void setPeriodic(boolean isPeriodic);
 	
 	public void setToSaveEvent(boolean isToSaveEvent);
+	
+	default public UUID generateUUID(){
+		return UUID.randomUUID();
+	}
 }

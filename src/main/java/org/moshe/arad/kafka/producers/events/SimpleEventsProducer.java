@@ -12,6 +12,7 @@ import org.moshe.arad.kafka.events.BackgammonEvent;
 import org.moshe.arad.kafka.producers.config.SimpleProducerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -31,6 +32,7 @@ public class SimpleEventsProducer <T extends BackgammonEvent> implements ISimple
 
 	private final Logger logger = LoggerFactory.getLogger(SimpleEventsProducer.class);
 	
+	@Autowired
 	private SimpleProducerConfig simpleProducerConfig;
 	
 	private ConsumerToProducerQueue consumerToProducerQueue;
