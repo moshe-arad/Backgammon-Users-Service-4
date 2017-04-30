@@ -5,22 +5,25 @@ import java.util.UUID;
 
 import org.moshe.arad.entities.BackgammonUser;
 
-public class NewUserCreatedEvent extends BackgammonEvent {
+public class LogoutUserEvent extends BackgammonEvent {
 
 	BackgammonUser backgammonUser;
 
-	public NewUserCreatedEvent() {
-	}
-
-	public NewUserCreatedEvent(UUID uuid, int serviceId, int eventId, Date arrived, String clazz,
+	public LogoutUserEvent(UUID uuid, int serviceId, int eventId, Date arrived, String clazz,
 			BackgammonUser backgammonUser) {
 		super(uuid, serviceId, eventId, arrived, clazz);
 		this.backgammonUser = backgammonUser;
 	}
 
+	public LogoutUserEvent(BackgammonUser backgammonUser) {
+		super();
+		this.backgammonUser = backgammonUser;
+	}
+
+
 	@Override
 	public String toString() {
-		return "NewUserCreatedEvent [backgammonUser=" + backgammonUser + "]";
+		return "LogoutUserEvent [backgammonUser=" + backgammonUser + "]";
 	}
 
 	public BackgammonUser getBackgammonUser() {
