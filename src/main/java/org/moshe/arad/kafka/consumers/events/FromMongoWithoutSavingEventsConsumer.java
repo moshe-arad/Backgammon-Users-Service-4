@@ -61,6 +61,8 @@ public class FromMongoWithoutSavingEventsConsumer extends SimpleEventsConsumer {
 				logger.info("Recieved the begin read events record, starting reading events from events store...");
 				int tempTotalNumOfEvents = jsonNode.get("totalNumOfEvents").asInt();
 				totalNumOfEvents.put(UUID.fromString(uuid), Integer.valueOf(tempTotalNumOfEvents));
+				
+				if(tempTotalNumOfEvents == 0) eventsMap.put(UUID.fromString(uuid), new HashSet<>());
 			}
 			else if(clazz.equals("NewUserCreatedEvent")){
 				NewUserCreatedEvent newUserCreatedEvent = objectMapper.readValue(record.value(), NewUserCreatedEvent.class);
