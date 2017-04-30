@@ -11,6 +11,8 @@ import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.moshe.arad.entities.BackgammonUser;
 import org.moshe.arad.kafka.KafkaUtils;
@@ -53,32 +55,52 @@ public class SnapshotAPI implements ApplicationContextAware {
 	
 	private ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(4);
 	
+	private ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
+	
 	public static final String LAST_UPDATED = "lastUpdateSnapshotDate";
 	public static final String LOBBY = "Lobby";
 	public static final String GAME = "Game";
 	public static final String LOGGED_OUT = "LoggedOut";
 	
 	public boolean isLastUpdateDateExists(){
-		return redisTemplate.hasKey(LAST_UPDATED);
+		try{
+			readWriteLock.readLock().lock();			
+			return redisTemplate.hasKey(LAST_UPDATED);
+		}
+		finally{
+			readWriteLock.readLock().unlock();
+		}		
 	}
 	
 	public Date getLastUpdateDate(){
 		if(isLastUpdateDateExists()){
-			return new Date(Long.parseLong(stringRedisTemplate.opsForValue().get(LAST_UPDATED)));
+			try{
+				readWriteLock.readLock().lock();			
+				return new Date(Long.parseLong(stringRedisTemplate.opsForValue().get(LAST_UPDATED)));
+			}
+			finally {
+				readWriteLock.readLock().unlock();
+			}
 		}
 		else return null;
 	}
 
 	public void saveLatestSnapshotDate(Date date){
+		readWriteLock.writeLock().lock();
 		redisTemplate.opsForValue().set(LAST_UPDATED, Long.toString(date.getTime()));
+		readWriteLock.writeLock().unlock();
 	}
 	
 	public Map<String,Set<String>> readLatestSnapshot(){
 		if(!isLastUpdateDateExists()) return null;
 		else{
+			readWriteLock.readLock().lock();
+			
 			Set<String> usersInLobby = redisTemplate.opsForSet().members(LOBBY);
 			Set<String> usersInGame = redisTemplate.opsForSet().members(GAME);
 			Set<String> usersLoggedOut = redisTemplate.opsForSet().members(LOGGED_OUT);
+			
+			readWriteLock.readLock().unlock();
 			
 			Map<String,Set<String>> result = new HashMap<String, Set<String>>(10000);
 			
@@ -118,6 +140,9 @@ public class SnapshotAPI implements ApplicationContextAware {
 	}
 	
 	public void updateLatestSnapshot(Map<String,Set<String>> snapshot){
+		
+		readWriteLock.writeLock().lock();
+		
 		redisTemplate.expire(LOBBY, 1, TimeUnit.NANOSECONDS);
 		redisTemplate.expire(GAME, 1, TimeUnit.NANOSECONDS);
 		redisTemplate.expire(LAST_UPDATED, 1, TimeUnit.NANOSECONDS);
@@ -147,7 +172,8 @@ public class SnapshotAPI implements ApplicationContextAware {
 			snapshot.get(LOGGED_OUT).toArray(loggedOutUsers);
 			redisTemplate.opsForSet().add(LOGGED_OUT, loggedOutUsers);
 		}
-				
+		
+		readWriteLock.writeLock().unlock();				
 	}
 	
 	/**
