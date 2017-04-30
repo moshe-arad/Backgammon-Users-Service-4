@@ -3,6 +3,9 @@ package org.moshe.arad.kafka.commands;
 import java.util.Date;
 import java.util.UUID;
 
+import org.springframework.stereotype.Component;
+
+@Component
 public class PullEventsWithoutSavingCommand implements ICommand {
 
 	private UUID uuid;

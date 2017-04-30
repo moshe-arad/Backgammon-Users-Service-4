@@ -34,10 +34,7 @@ public class UsersRepository {
 		if(snapshot == null) return false;
 		else return isUserExistsInSnapshot(user, snapshot);				
 	}
-	
-	
-	
-	
+		
 	private boolean isUserExistsInSnapshot(BackgammonUser user, Map<String, Set<String>> snapshot){
 		ObjectMapper objectMapper = new ObjectMapper();
 		Set<String> setsUnion = new HashSet<>(100000);

@@ -19,18 +19,19 @@ public class PullEventsWithSavingCommandsProducer extends SimpleCommandsProducer
 	private ApplicationContext context;
 	
 	@Override
-	public void doProducerCommandsOperations(UUID uuid) {
+	public void doProducerCommandsOperations() {
+		if(super.getUuid() == null) setUuid(UUID.randomUUID());
 		PullEventsWithSavingCommand pullEventsWithSavingCommand = context.getBean(PullEventsWithSavingCommand.class);
 		Date lastUpdate = snapshotAPI.getLastUpdateDate();	
 		
 		if(lastUpdate == null){
-			pullEventsWithSavingCommand.setUuid(uuid);
+			pullEventsWithSavingCommand.setUuid(super.getUuid());
 			pullEventsWithSavingCommand.setFromDate(new Date());
 			pullEventsWithSavingCommand.setIgnoreDate(true);
 			
 		}
 		else{
-			pullEventsWithSavingCommand.setUuid(uuid);
+			pullEventsWithSavingCommand.setUuid(super.getUuid());
 			pullEventsWithSavingCommand.setFromDate(lastUpdate);
 			pullEventsWithSavingCommand.setIgnoreDate(false);
 		}
@@ -38,4 +39,7 @@ public class PullEventsWithSavingCommandsProducer extends SimpleCommandsProducer
 		sendKafkaMessage(pullEventsWithSavingCommand);
 	}
 
+	public void setUuid(UUID uuid) {
+		super.setUuid(uuid);
+	}
 }

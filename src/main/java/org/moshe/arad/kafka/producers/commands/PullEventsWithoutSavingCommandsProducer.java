@@ -1,13 +1,14 @@
 package org.moshe.arad.kafka.producers.commands;
 
 import java.util.Date;
-import java.util.UUID;
 
 import org.moshe.arad.kafka.commands.PullEventsWithoutSavingCommand;
 import org.moshe.arad.local.snapshot.SnapshotAPI;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.stereotype.Component;
 
+@Component
 public class PullEventsWithoutSavingCommandsProducer extends SimpleCommandsProducer<PullEventsWithoutSavingCommand> {
 
 	@Autowired
@@ -17,18 +18,18 @@ public class PullEventsWithoutSavingCommandsProducer extends SimpleCommandsProdu
 	private ApplicationContext context;
 	
 	@Override
-	public void doProducerCommandsOperations(UUID uuid) {
+	public void doProducerCommandsOperations() {
 		PullEventsWithoutSavingCommand pullEventsWithoutSavingCommand = context.getBean(PullEventsWithoutSavingCommand.class);
 		Date lastUpdate = snapshotAPI.getLastUpdateDate();	
 		
 		if(lastUpdate == null){
-			pullEventsWithoutSavingCommand.setUuid(uuid);
+			pullEventsWithoutSavingCommand.setUuid(super.getUuid());
 			pullEventsWithoutSavingCommand.setFromDate(new Date());
 			pullEventsWithoutSavingCommand.setIgnoreDate(true);
 			
 		}
 		else{
-			pullEventsWithoutSavingCommand.setUuid(uuid);
+			pullEventsWithoutSavingCommand.setUuid(super.getUuid());
 			pullEventsWithoutSavingCommand.setFromDate(lastUpdate);
 			pullEventsWithoutSavingCommand.setIgnoreDate(false);
 		}

@@ -1,7 +1,6 @@
 package org.moshe.arad.kafka.producers.commands;
 
 import java.util.UUID;
-import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -32,7 +31,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 @Component
 @Scope("prototype")
-public abstract class SimpleCommandsProducer <T extends ICommand> implements ISimpleCommandProducer<T>, Callable<UUID> {
+public abstract class SimpleCommandsProducer <T extends ICommand> implements ISimpleCommandProducer<T>, Runnable {
 
 	private final Logger logger = LoggerFactory.getLogger(SimpleCommandsProducer.class);
 	
@@ -74,15 +73,11 @@ public abstract class SimpleCommandsProducer <T extends ICommand> implements ISi
 		}
 	}
 
-	
 	@Override
-	public UUID call() throws Exception {
-		UUID uuid = UUID.randomUUID();
-		if(isPeriodic) this.takeMessagesFromConsumersAndPassPeriodic(uuid);
-		else takeMessagesFromConsumersAndPass(uuid);
-		return uuid;
+	public void run() {
+		if(isPeriodic) this.takeMessagesFromConsumersAndPassPeriodic();
+		else takeMessagesFromConsumersAndPass();		
 	}
-
 
 	private void sendMessage(T command){
 		logger.info("Creating kafka producer.");
@@ -111,17 +106,17 @@ public abstract class SimpleCommandsProducer <T extends ICommand> implements ISi
 		return null;
 	}
 	
-	private void takeMessagesFromConsumersAndPassPeriodic(UUID uuid){
+	private void takeMessagesFromConsumersAndPassPeriodic(){
 			scheduledExecutor.scheduleAtFixedRate(() -> {
-					doProducerCommandsOperations(uuid);
+					doProducerCommandsOperations();
 			}, initialDelay, period, timeUnit);
 	}
 	
-	private void takeMessagesFromConsumersAndPass(UUID uuid){
-		doProducerCommandsOperations(uuid);
+	private void takeMessagesFromConsumersAndPass(){
+		doProducerCommandsOperations();
 	}
 	
-	public abstract void doProducerCommandsOperations(UUID uuid);
+	public abstract void doProducerCommandsOperations();
 	
 	public boolean isRunning() {
 		return isRunning;
@@ -189,8 +184,8 @@ public abstract class SimpleCommandsProducer <T extends ICommand> implements ISi
 		this.isPeriodic = isPeriodic;
 	}
 
+	@Override
 	public UUID getUuid() {
-		uuid = generateUUID();
 		return uuid;
 	}
 

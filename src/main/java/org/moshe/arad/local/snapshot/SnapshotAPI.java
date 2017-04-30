@@ -7,6 +7,7 @@ import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -17,7 +18,7 @@ import org.moshe.arad.kafka.events.BackgammonEvent;
 import org.moshe.arad.kafka.events.NewUserCreatedEvent;
 import org.moshe.arad.kafka.events.NewUserJoinedLobbyEvent;
 import org.moshe.arad.kafka.producers.commands.ISimpleCommandProducer;
-import org.moshe.arad.kafka.producers.commands.PullEventsWithSavingCommandsProducer;
+import org.moshe.arad.kafka.producers.commands.PullEventsWithoutSavingCommandsProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -42,7 +43,9 @@ public class SnapshotAPI implements ApplicationContextAware {
 	
 	private ApplicationContext context;
 	
-	private LinkedList<BackgammonEvent> fromMongoEventsStoreEventList = new LinkedList<>();
+	private Map<UUID, LinkedList<BackgammonEvent>> eventsfromMongo = new HashMap<>();
+	
+	private Map<UUID, Thread> lockers = new HashMap<>(10000);
 	
 	private Logger logger = LoggerFactory.getLogger(SnapshotAPI.class);
 	
@@ -85,33 +88,33 @@ public class SnapshotAPI implements ApplicationContextAware {
 			return result;
 		}
 	}	
-
+	
 	public Map<String,Set<String>> doEventsFoldingAndGetInstanceWithoutSaving(){		
 		logger.info("Preparing command producer...");
-		PullEventsWithSavingCommandsProducer pullEventsWithSavingCommandsProducer = context.getBean(PullEventsWithSavingCommandsProducer.class);
-		initSingleProducer(pullEventsWithSavingCommandsProducer, KafkaUtils.PULL_EVENTS_WITHOUT_SAVING_COMMAND_TOPIC);	
-		threadPoolExecutor.submit(pullEventsWithSavingCommandsProducer);
+		PullEventsWithoutSavingCommandsProducer pullEventsWithoutSavingCommandsProducer = context.getBean(PullEventsWithoutSavingCommandsProducer.class);
+		UUID uuid = initSingleProducer(pullEventsWithoutSavingCommandsProducer, KafkaUtils.PULL_EVENTS_WITHOUT_SAVING_COMMAND_TOPIC);
+		threadPoolExecutor.submit(pullEventsWithoutSavingCommandsProducer);
 		logger.info("command submitted...");
 		
-		int counter = 0;
+		Thread current = Thread.currentThread();
 		
-		while(this.fromMongoEventsStoreEventList.size() == 0){
-			try {
-				Thread.sleep(50);
+		synchronized (current) {
+			try {				
+				lockers.put(uuid, current);
+				current.wait(5000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-			
-			counter++;
-			if(counter == 40 && this.fromMongoEventsStoreEventList.size() == 0) return null;
 		}
-				 
-		return getInstanceFromEventsFold();
+		
+		return getInstanceFromEventsFold(eventsfromMongo.get(uuid));
 	}
 	
-	private void initSingleProducer(ISimpleCommandProducer producer, String topic) {
+	private UUID initSingleProducer(ISimpleCommandProducer producer, String topic) {
 		producer.setPeriodic(false);
 		producer.setTopic(topic);
+		producer.setUuid(UUID.randomUUID());
+		return producer.getUuid();
 	}
 	
 	public void updateLatestSnapshot(Map<String,Set<String>> snapshot){
@@ -151,7 +154,7 @@ public class SnapshotAPI implements ApplicationContextAware {
 	 * calculate instance after events fold, will return this instance without saving it into Redis.
 	 * @return 
 	 */
-	private Map<String,Set<String>> getInstanceFromEventsFold(){
+	public Map<String,Set<String>> getInstanceFromEventsFold(LinkedList<BackgammonEvent> fromMongoEventsStoreEventList){
 		boolean isLatestSnapshotExists = this.readLatestSnapshot() == null ? false : true;
 		Map<String,Set<String>> currentSnapshot;
 		
@@ -163,7 +166,7 @@ public class SnapshotAPI implements ApplicationContextAware {
 			currentSnapshot.put(LOGGED_OUT, new HashSet<>());
 		}
 
-		ListIterator<BackgammonEvent> it = this.fromMongoEventsStoreEventList.listIterator();
+		ListIterator<BackgammonEvent> it = fromMongoEventsStoreEventList.listIterator();
 		Map<String, BackgammonUser> aboutToEnterLobby = new HashMap<>(10000);
 		
 		logger.info("Starting to fold events into current state...");
@@ -203,14 +206,6 @@ public class SnapshotAPI implements ApplicationContextAware {
 		return currentSnapshot;
 	}
 	
-	public LinkedList<BackgammonEvent> getFromMongoEventsStoreEventList() {
-		return fromMongoEventsStoreEventList;
-	}
-
-	public void setFromMongoEventsStoreEventList(LinkedList<BackgammonEvent> fromMongoEventsStoreEventList) {
-		this.fromMongoEventsStoreEventList = fromMongoEventsStoreEventList;
-	}
-	
 	public Set<Object> getUpdateSnapshotLocker() {
 		return updateSnapshotLocker;
 	}
@@ -222,5 +217,21 @@ public class SnapshotAPI implements ApplicationContextAware {
 	@Override
 	public void setApplicationContext(ApplicationContext context) throws BeansException {
 		this.context = context;
+	}
+
+	public Map<UUID, Thread> getLockers() {
+		return lockers;
+	}
+
+	public void setLockers(Map<UUID, Thread> lockers) {
+		this.lockers = lockers;
+	}
+
+	public Map<UUID, LinkedList<BackgammonEvent>> getEventsfromMongo() {
+		return eventsfromMongo;
+	}
+
+	public void setEventsfromMongo(Map<UUID, LinkedList<BackgammonEvent>> eventsfromMongo) {
+		this.eventsfromMongo = eventsfromMongo;
 	}
 }

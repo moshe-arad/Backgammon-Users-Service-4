@@ -35,8 +35,6 @@ public class FromMongoWithSavingEventsConsumer extends SimpleEventsConsumer {
 	
 	Logger logger = LoggerFactory.getLogger(FromMongoWithSavingEventsConsumer.class);
 	
-	private ArrayList<BackgammonEvent> fromMongoEventsStoreEventList; 
-	
 	private Map<UUID,Set<BackgammonEvent>> eventsMap = new HashMap<>(100000);
 	private Map<UUID,Integer> totalNumOfEvents = new HashMap<>(100000);
 	
@@ -84,8 +82,8 @@ public class FromMongoWithSavingEventsConsumer extends SimpleEventsConsumer {
 				LinkedList<BackgammonEvent> sortedEvents = getSortedListByArrivedDate(uuid);
 				Date latestEventDate = sortedEvents.getLast().getArrived();
 				
-				snapshotAPI.setFromMongoEventsStoreEventList(sortedEvents);
-				snapshotAPI.updateLatestSnapshot(snapshotAPI.doEventsFoldingAndGetInstanceWithoutSaving());
+//				snapshotAPI.setFromMongoEventsStoreEventList(sortedEvents);
+				snapshotAPI.updateLatestSnapshot(snapshotAPI.getInstanceFromEventsFold(sortedEvents));
 				snapshotAPI.saveLatestSnapshotDate(latestEventDate);
 				logger.info("SnapshotAPI updated...");
 				
@@ -110,7 +108,7 @@ public class FromMongoWithSavingEventsConsumer extends SimpleEventsConsumer {
 	}
 	
 	public LinkedList<BackgammonEvent> getSortedListByArrivedDate(String uuid){
-		fromMongoEventsStoreEventList = new ArrayList<>(eventsMap.get(UUID.fromString(uuid)));
+		ArrayList<BackgammonEvent> fromMongoEventsStoreEventList = new ArrayList<>(eventsMap.get(UUID.fromString(uuid)));
 		fromMongoEventsStoreEventList = (ArrayList<BackgammonEvent>) fromMongoEventsStoreEventList.stream().sorted((BackgammonEvent e1, BackgammonEvent e2) -> {return e1.getArrived().compareTo(e2.getArrived());}).collect(Collectors.toList());
 		return new LinkedList<>(fromMongoEventsStoreEventList);
 	}	

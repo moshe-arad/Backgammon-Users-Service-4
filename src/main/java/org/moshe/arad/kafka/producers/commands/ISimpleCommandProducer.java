@@ -39,7 +39,7 @@ public interface ISimpleCommandProducer <T extends ICommand> extends ISimpleProd
 	
 	public void setPeriodic(boolean isPeriodic);
 	
-	default public UUID generateUUID(){
-		return UUID.randomUUID();
-	}
+	public UUID getUuid();
+	
+	public void setUuid(UUID uuid);
 }
