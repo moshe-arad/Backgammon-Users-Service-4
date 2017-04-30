@@ -7,16 +7,23 @@ import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.moshe.arad.entities.BackgammonUser;
+import org.moshe.arad.kafka.KafkaUtils;
 import org.moshe.arad.kafka.events.BackgammonEvent;
 import org.moshe.arad.kafka.events.NewUserCreatedEvent;
 import org.moshe.arad.kafka.events.NewUserJoinedLobbyEvent;
+import org.moshe.arad.kafka.producers.commands.ISimpleCommandProducer;
+import org.moshe.arad.kafka.producers.commands.PullEventsWithSavingCommandsProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Repository;
@@ -25,7 +32,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Repository
-public class SnapshotAPI {
+public class SnapshotAPI implements ApplicationContextAware {
 	
 	@Autowired
 	private RedisTemplate<String, String> redisTemplate;
@@ -33,36 +40,38 @@ public class SnapshotAPI {
 	@Autowired
 	private StringRedisTemplate stringRedisTemplate;
 	
-	private LinkedList<BackgammonEvent> fromMongoEventsStoreEventList;
+	private ApplicationContext context;
+	
+	private LinkedList<BackgammonEvent> fromMongoEventsStoreEventList = new LinkedList<>();
 	
 	private Logger logger = LoggerFactory.getLogger(SnapshotAPI.class);
 	
-	private Date latestSnapshotDate;
-	
-	private Map<String,Set<String>> tempSnapshot;
-	
-	private Map<UUID, Thread> usersLockers = new HashMap<>(100000);
-	
 	private Set<Object> updateSnapshotLocker = new HashSet<>(100000);
+	
+	private ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(4);
 	
 	public static final String LAST_UPDATED = "lastUpdateSnapshotDate";
 	public static final String LOBBY = "Lobby";
 	public static final String GAME = "Game";
 	public static final String LOGGED_OUT = "LoggedOut";
 	
-	public boolean isLastUpdateSnapshotDateExists(){
+	public boolean isLastUpdateDateExists(){
 		return redisTemplate.hasKey(LAST_UPDATED);
 	}
 	
-	public Date getLastUpdateSnapshotDate(){
-		if(isLastUpdateSnapshotDateExists()){
+	public Date getLastUpdateDate(){
+		if(isLastUpdateDateExists()){
 			return new Date(Long.parseLong(stringRedisTemplate.opsForValue().get(LAST_UPDATED)));
 		}
 		else return null;
 	}
 
-	public Map<String,Set<String>> getLatestSnapshot(){
-		if(!isLastUpdateSnapshotDateExists()) return null;
+	public void saveLatestSnapshotDate(Date date){
+		redisTemplate.opsForValue().set(LAST_UPDATED, Long.toString(date.getTime()));
+	}
+	
+	public Map<String,Set<String>> readLatestSnapshot(){
+		if(!isLastUpdateDateExists()) return null;
 		else{
 			Set<String> usersInLobby = redisTemplate.opsForSet().members(LOBBY);
 			Set<String> usersInGame = redisTemplate.opsForSet().members(GAME);
@@ -75,6 +84,34 @@ public class SnapshotAPI {
 			result.put(LOGGED_OUT, usersLoggedOut);
 			return result;
 		}
+	}	
+
+	public Map<String,Set<String>> doEventsFoldingAndGetInstanceWithoutSaving(){		
+		logger.info("Preparing command producer...");
+		PullEventsWithSavingCommandsProducer pullEventsWithSavingCommandsProducer = context.getBean(PullEventsWithSavingCommandsProducer.class);
+		initSingleProducer(pullEventsWithSavingCommandsProducer, KafkaUtils.PULL_EVENTS_WITHOUT_SAVING_COMMAND_TOPIC);	
+		threadPoolExecutor.submit(pullEventsWithSavingCommandsProducer);
+		logger.info("command submitted...");
+		
+		int counter = 0;
+		
+		while(this.fromMongoEventsStoreEventList.size() == 0){
+			try {
+				Thread.sleep(50);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			
+			counter++;
+			if(counter == 40 && this.fromMongoEventsStoreEventList.size() == 0) return null;
+		}
+				 
+		return getInstanceFromEventsFold();
+	}
+	
+	private void initSingleProducer(ISimpleCommandProducer producer, String topic) {
+		producer.setPeriodic(false);
+		producer.setTopic(topic);
 	}
 	
 	public void updateLatestSnapshot(Map<String,Set<String>> snapshot){
@@ -109,21 +146,16 @@ public class SnapshotAPI {
 		}
 				
 	}
-
-	public void updateLocalSnapshot(){
-		Map<String,Set<String>> currentSnapshot = doEventsFold();
-		saveCurrentSnapshot(currentSnapshot);
-	}
 	
-	public void saveTempSnapshot(){
-		tempSnapshot = doEventsFold();
-	}
-	
-	private Map<String,Set<String>> doEventsFold(){
-		boolean isLatestSnapshotExists = this.getLatestSnapshot()==null ? false:true;
+	/**
+	 * calculate instance after events fold, will return this instance without saving it into Redis.
+	 * @return 
+	 */
+	private Map<String,Set<String>> getInstanceFromEventsFold(){
+		boolean isLatestSnapshotExists = this.readLatestSnapshot() == null ? false : true;
 		Map<String,Set<String>> currentSnapshot;
 		
-		if(isLatestSnapshotExists) currentSnapshot = this.getLatestSnapshot();
+		if(isLatestSnapshotExists) currentSnapshot = this.readLatestSnapshot();
 		else {
 			currentSnapshot = new HashMap<>(10000);
 			currentSnapshot.put(LOBBY, new HashSet<>());
@@ -166,22 +198,9 @@ public class SnapshotAPI {
 		}
 		
 		logger.info("Events folding into current state completed...");
+		
+		fromMongoEventsStoreEventList.clear();
 		return currentSnapshot;
-	}
-	
-	private void saveCurrentSnapshot(Map<String,Set<String>> currentSnapshot){
-		try{
-			if(fromMongoEventsStoreEventList.size() > 0){
-				this.updateLatestSnapshot(currentSnapshot);
-				redisTemplate.opsForValue().set(LAST_UPDATED, Long.toString(this.latestSnapshotDate.getTime()));
-				logger.info("Current local redis snapshot update completed...");
-			}			
-		}
-		catch (Exception e) {
-			logger.error("Failed to update redis snapshot...");
-			logger.error(e.getMessage());
-			e.printStackTrace();
-		}		
 	}
 	
 	public LinkedList<BackgammonEvent> getFromMongoEventsStoreEventList() {
@@ -191,30 +210,6 @@ public class SnapshotAPI {
 	public void setFromMongoEventsStoreEventList(LinkedList<BackgammonEvent> fromMongoEventsStoreEventList) {
 		this.fromMongoEventsStoreEventList = fromMongoEventsStoreEventList;
 	}
-
-	public Date getLatestSnapshotDate() {
-		return latestSnapshotDate;
-	}
-
-	public void setLatestSnapshotDate(Date latestSnapshotDate) {
-		this.latestSnapshotDate = latestSnapshotDate;
-	}
-
-	public Map<String, Set<String>> getTempSnapshot() {
-		return tempSnapshot;
-	}
-
-	public void setTempSnapshot(Map<String, Set<String>> tempSnapshot) {
-		this.tempSnapshot = tempSnapshot;
-	}
-
-	public Map<UUID, Thread> getUsersLockers() {
-		return usersLockers;
-	}
-
-	public void setUsersLockers(Map<UUID, Thread> usersLockers) {
-		this.usersLockers = usersLockers;
-	}
 	
 	public Set<Object> getUpdateSnapshotLocker() {
 		return updateSnapshotLocker;
@@ -222,5 +217,10 @@ public class SnapshotAPI {
 
 	public void setUpdateSnapshotLocker(Set<Object> updateSnapshotLocker) {
 		this.updateSnapshotLocker = updateSnapshotLocker;
+	}
+
+	@Override
+	public void setApplicationContext(ApplicationContext context) throws BeansException {
+		this.context = context;
 	}
 }

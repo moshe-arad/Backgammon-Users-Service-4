@@ -12,15 +12,16 @@ import org.moshe.arad.kafka.KafkaUtils;
 import org.moshe.arad.kafka.consumers.ISimpleConsumer;
 import org.moshe.arad.kafka.consumers.commands.CreateNewUserCommandsConsumer;
 import org.moshe.arad.kafka.consumers.config.CreateNewUserCommandConfig;
-import org.moshe.arad.kafka.consumers.config.FromMongoEventsStoreEventConfig;
+import org.moshe.arad.kafka.consumers.config.FromMongoWithSavingEventsConfig;
+import org.moshe.arad.kafka.consumers.config.FromMongoWithoutSavingEventsConfig;
 import org.moshe.arad.kafka.consumers.config.SimpleConsumerConfig;
-import org.moshe.arad.kafka.consumers.events.FromMongoEventsStoreEventsConsumer;
+import org.moshe.arad.kafka.consumers.events.FromMongoWithSavingEventsConsumer;
+import org.moshe.arad.kafka.consumers.events.FromMongoWithoutSavingEventsConsumer;
 import org.moshe.arad.kafka.events.NewUserCreatedAckEvent;
 import org.moshe.arad.kafka.events.NewUserCreatedEvent;
 import org.moshe.arad.kafka.producers.ISimpleProducer;
 import org.moshe.arad.kafka.producers.commands.ISimpleCommandProducer;
-import org.moshe.arad.kafka.producers.commands.PullEventsCommandsProducer;
-import org.moshe.arad.kafka.producers.config.SimpleProducerConfig;
+import org.moshe.arad.kafka.producers.commands.PullEventsWithSavingCommandsProducer;
 import org.moshe.arad.kafka.producers.events.ISimpleEventProducer;
 import org.moshe.arad.kafka.producers.events.SimpleEventsProducer;
 import org.slf4j.Logger;
@@ -43,12 +44,17 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 	private SimpleEventsProducer<NewUserCreatedEvent> newUserCreatedEventsProducer;
 	
 	@Autowired
-	private PullEventsCommandsProducer pullEventsCommandsProducer;
+	private PullEventsWithSavingCommandsProducer pullEventsWithSavingCommandsProducer;
 	
-	private FromMongoEventsStoreEventsConsumer fromMongoEventsStoreEventsConsumer;
+	private FromMongoWithSavingEventsConsumer fromMongoWithSavingEventsConsumer;
+	
+	private FromMongoWithoutSavingEventsConsumer fromMongoWithoutSavingEventsConsumer;
 
 	@Autowired
-	private FromMongoEventsStoreEventConfig fromMongoEventsStoreEventConfig;
+	private FromMongoWithSavingEventsConfig fromMongoWithSavingEventsConfig;
+	
+	@Autowired
+	private FromMongoWithoutSavingEventsConfig fromMongoWithoutSavingEventsConfig;
 	
 	@Autowired
 	private SimpleEventsProducer<NewUserCreatedAckEvent> newUserCreatedAckEventsProducer;
@@ -91,22 +97,27 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 	public void initKafkaEventsConsumers() {
 		
 		for(int i=0; i<NUM_CONSUMERS; i++){
-			fromMongoEventsStoreEventsConsumer = context.getBean(FromMongoEventsStoreEventsConsumer.class);
+			fromMongoWithSavingEventsConsumer = context.getBean(FromMongoWithSavingEventsConsumer.class);
+			fromMongoWithoutSavingEventsConsumer = context.getBean(FromMongoWithoutSavingEventsConsumer.class);
+			
 			logger.info("Initializing from mongo events store event consumer...");
-			initSingleConsumer(fromMongoEventsStoreEventsConsumer, KafkaUtils.FROM_MONGO_TO_USERS_SERVICES, fromMongoEventsStoreEventConfig);
+			initSingleConsumer(fromMongoWithSavingEventsConsumer, KafkaUtils.FROM_MONGO_EVENTS_WITH_SAVING_TOPIC, fromMongoWithSavingEventsConfig);
+						
+			
+			initSingleConsumer(fromMongoWithoutSavingEventsConsumer, KafkaUtils.FROM_MONGO_EVENTS_WITHOUT_SAVING_TOPIC, fromMongoWithoutSavingEventsConfig);
 			logger.info("Initialize from mongo events store event consumer, completed...");
 			
-			executeRunnablesProducersAndConsumers(Arrays.asList(fromMongoEventsStoreEventsConsumer));
+			executeRunnablesProducersAndConsumers(Arrays.asList(fromMongoWithSavingEventsConsumer, fromMongoWithoutSavingEventsConsumer));
 		}
 	}
 
 	@Override
 	public void initKafkaCommandsProducers() {
 		logger.info("Initializing pull events commands producer...");
-		initSingleProducer(pullEventsCommandsProducer, 15, 15, TimeUnit.MINUTES, KafkaUtils.PULL_EVENTS_COMMAND_TOPIC, null);
+		initSingleProducer(pullEventsWithSavingCommandsProducer, 15, 15, TimeUnit.MINUTES, KafkaUtils.PULL_EVENTS_WITH_SAVING_COMMAND_TOPIC, null);
 		logger.info("Initialize pull events commands producer, completed...");
 		
-		executeCallablesProducersAndConsumers(Arrays.asList(pullEventsCommandsProducer));
+		executeCallablesProducersAndConsumers(Arrays.asList(pullEventsWithSavingCommandsProducer));
 	}
 
 	@Override
@@ -123,9 +134,9 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 	public void engineShutdown() {
 		logger.info("about to do shutdown.");		
 		shutdownSingleConsumer(createNewUserCommandConsumer);
-		shutdownSingleConsumer(fromMongoEventsStoreEventsConsumer);		
+		shutdownSingleConsumer(fromMongoWithSavingEventsConsumer);		
 		shutdownSingleProducer(newUserCreatedEventsProducer);
-		shutdownSingleProducer(pullEventsCommandsProducer);
+		shutdownSingleProducer(pullEventsWithSavingCommandsProducer);
 		selfShutdown();
 		logger.info("shutdown compeleted.");
 	}
@@ -143,7 +154,6 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 	
 	private void initSingleProducer(ISimpleCommandProducer producer, int period, int initialDelay, TimeUnit timeUnit, String topic, ConsumerToProducerQueue queue) {
 		producer.setPeriodic(true);
-		producer.setToSaveEvent(true);
 		producer.setPeriod(period);
 		producer.setInitialDelay(initialDelay);
 		producer.setTimeUnit(timeUnit);

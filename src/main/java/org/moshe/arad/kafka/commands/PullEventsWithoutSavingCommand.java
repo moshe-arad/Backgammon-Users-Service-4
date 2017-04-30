@@ -3,25 +3,27 @@ package org.moshe.arad.kafka.commands;
 import java.util.Date;
 import java.util.UUID;
 
-public class PullEventCommand implements ICommand {
+public class PullEventsWithoutSavingCommand implements ICommand {
 
 	private UUID uuid;
 	private Date fromDate;
 	private boolean isIgnoreDate;
-	private boolean isToSaveEvents;
- 
-	public PullEventCommand(UUID uuid, Date fromDate, boolean isIgnoreDate, boolean isToSaveEvents) {
+	
+	public PullEventsWithoutSavingCommand() {
+	
+	}
+
+	public PullEventsWithoutSavingCommand(UUID uuid, Date fromDate, boolean isIgnoreDate) {
 		super();
 		this.uuid = uuid;
 		this.fromDate = fromDate;
 		this.isIgnoreDate = isIgnoreDate;
-		this.isToSaveEvents = isToSaveEvents;
 	}
-	
+
 	@Override
 	public String toString() {
-		return "PullEventsCommand [uuid=" + uuid + ", fromDate=" + fromDate + ", isIgnoreDate=" + isIgnoreDate
-				+ ", isToSaveEvents=" + isToSaveEvents + "]";
+		return "PullEventsWithoutSavingCommand [uuid=" + uuid + ", fromDate=" + fromDate + ", isIgnoreDate="
+				+ isIgnoreDate + "]";
 	}
 
 	public UUID getUuid() {
@@ -46,13 +48,5 @@ public class PullEventCommand implements ICommand {
 
 	public void setIgnoreDate(boolean isIgnoreDate) {
 		this.isIgnoreDate = isIgnoreDate;
-	}
-
-	public boolean isToSaveEvents() {
-		return isToSaveEvents;
-	}
-
-	public void setToSaveEvents(boolean isToSaveEvents) {
-		this.isToSaveEvents = isToSaveEvents;
 	}
 }
