@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Date;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.moshe.arad.entities.Status;
 import org.moshe.arad.kafka.ConsumerToProducerQueue;
 import org.moshe.arad.kafka.commands.CreateNewUserCommand;
 import org.moshe.arad.kafka.events.NewUserCreatedAckEvent;
@@ -53,6 +54,7 @@ public class CreateNewUserCommandsConsumer extends SimpleCommandsConsumer {
 			}
 			else{
 				logger.info("Creating New User Created Event... ");
+				createNewUserCommand.getBackgammonUser().setStatus(Status.CreatedAndLoggedIn);
 				NewUserCreatedEvent newUserCreatedEvent = new NewUserCreatedEvent(createNewUserCommand.getUuid(), 
 						1, 1, new Date(), "NewUserCreatedEvent", createNewUserCommand.getBackgammonUser()); 
 		    	toLobbyServiceQueue.getEventsQueue().put(newUserCreatedEvent);
