@@ -58,8 +58,10 @@ public class SnapshotAPI implements ApplicationContextAware {
 	private ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
 	
 	public static final String LAST_UPDATED = "lastUpdateSnapshotDate";
-	public static final String LOBBY = "Lobby";
-	public static final String GAME = "Game";
+	public static final String CREATED_AND_LOGGED_IN = "CreatedAndLoggedIn";
+	public static final String LOGGED_IN = "LoggedIn";
+	public static final String LOBBY = "InLobby";
+	public static final String GAME = "InGame";
 	public static final String LOGGED_OUT = "LoggedOut";
 	
 	public boolean isLastUpdateDateExists(){
