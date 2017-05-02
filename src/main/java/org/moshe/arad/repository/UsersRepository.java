@@ -29,34 +29,18 @@ public class UsersRepository {
 	
 	public boolean isUserExists(BackgammonUser user) {
 		
-		Map<String,Set<String>> snapshot = snapshotAPI.doEventsFoldingAndGetInstanceWithoutSaving();
+		Map<String,Map<Object, Object>> snapshot = snapshotAPI.doEventsFoldingAndGetInstanceWithoutSaving();
 		
 		if(snapshot == null) return false;
 		else return isUserExistsInSnapshot(user, snapshot);				
 	}
 		
-	private boolean isUserExistsInSnapshot(BackgammonUser user, Map<String, Set<String>> snapshot){
-		ObjectMapper objectMapper = new ObjectMapper();
-		Set<String> setsUnion = new HashSet<>(100000);
-		
-		setsUnion.addAll(snapshot.get(SnapshotAPI.LOBBY));
-		setsUnion.addAll(snapshot.get(SnapshotAPI.GAME));
-		setsUnion.addAll(snapshot.get(SnapshotAPI.LOGGED_OUT));
-		
-		Iterator<String> it = setsUnion.iterator();
-		
-		while(it.hasNext()){
-			try {
-				JsonNode jsonNode = objectMapper.readValue(it.next(), JsonNode.class);
-				String userName = jsonNode.get("userName").asText();
-				String email = jsonNode.get("email").asText();
-				
-				if(userName.equals(user.getUserName()) && email.equals(user.getEmail())) return true;
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-		
-		return false;
+	private boolean isUserExistsInSnapshot(BackgammonUser user, Map<String,Map<Object, Object>> snapshot){
+		if(snapshot.get(SnapshotAPI.CREATED_AND_LOGGED_IN).containsKey(user.getUserName())) return true;
+		if(snapshot.get(SnapshotAPI.LOGGED_IN).containsKey(user.getUserName())) return true;
+		if(snapshot.get(SnapshotAPI.LOBBY).containsKey(user.getUserName())) return true;
+		if(snapshot.get(SnapshotAPI.GAME).containsKey(user.getUserName())) return true;
+		if(snapshot.get(SnapshotAPI.LOGGED_OUT).containsKey(user.getUserName())) return true;
+		return false;		
 	}
 }
