@@ -14,6 +14,9 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.moshe.arad.kafka.consumers.config.SimpleConsumerConfig;
 import org.moshe.arad.kafka.events.BackgammonEvent;
+import org.moshe.arad.kafka.events.ExistingUserJoinedLobbyEvent;
+import org.moshe.arad.kafka.events.LoggedInEvent;
+import org.moshe.arad.kafka.events.LogoutUserEvent;
 import org.moshe.arad.kafka.events.NewUserCreatedEvent;
 import org.moshe.arad.kafka.events.NewUserJoinedLobbyEvent;
 import org.moshe.arad.local.snapshot.SnapshotAPI;
@@ -74,6 +77,24 @@ public class FromMongoWithoutSavingEventsConsumer extends SimpleEventsConsumer {
 				NewUserJoinedLobbyEvent newUserJoinedLobbyEvent = objectMapper.readValue(record.value(), NewUserJoinedLobbyEvent.class);
 				backgammonEvent = newUserJoinedLobbyEvent;
 
+				addEventToCollectedEvents(uuid, backgammonEvent);
+			}
+			else if(clazz.equals("LoggedInEvent")){
+				LoggedInEvent loggedInEvent = objectMapper.readValue(record.value(), LoggedInEvent.class);
+				backgammonEvent = loggedInEvent;
+				
+				addEventToCollectedEvents(uuid, backgammonEvent);
+			}
+			else if(clazz.equals("ExistingUserJoinedLobbyEvent")){
+				ExistingUserJoinedLobbyEvent existingUserJoinedLobbyEvent = objectMapper.readValue(record.value(), ExistingUserJoinedLobbyEvent.class);
+				backgammonEvent = existingUserJoinedLobbyEvent;
+				
+				addEventToCollectedEvents(uuid, backgammonEvent);
+			}
+			else if(clazz.equals("LoggedOutEvent")){
+				LogoutUserEvent logoutUserEvent = objectMapper.readValue(record.value(), LogoutUserEvent.class);
+				backgammonEvent = logoutUserEvent;
+				
 				addEventToCollectedEvents(uuid, backgammonEvent);
 			}
 			

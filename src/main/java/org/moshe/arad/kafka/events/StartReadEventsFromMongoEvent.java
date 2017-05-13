@@ -9,4 +9,9 @@ public class StartReadEventsFromMongoEvent extends BackgammonEvent {
 	public String toString() {
 		return "StartReadEventsFromMongoEvent []";
 	}
+	
+	@Override
+	public int compareTo(BackgammonEvent o) {
+		return this.compareTo(o);
+	}
 }

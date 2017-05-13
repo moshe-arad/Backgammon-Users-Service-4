@@ -9,13 +9,17 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.moshe.arad.kafka.EventsBasketFromMongo;
 import org.moshe.arad.kafka.consumers.config.SimpleConsumerConfig;
 import org.moshe.arad.kafka.events.BackgammonEvent;
 import org.moshe.arad.kafka.events.ExistingUserJoinedLobbyEvent;
 import org.moshe.arad.kafka.events.LoggedInEvent;
+import org.moshe.arad.kafka.events.LogoutUserEvent;
 import org.moshe.arad.kafka.events.NewUserCreatedEvent;
 import org.moshe.arad.kafka.events.NewUserJoinedLobbyEvent;
 import org.moshe.arad.local.snapshot.SnapshotAPI;
@@ -37,8 +41,11 @@ public class FromMongoWithSavingEventsConsumer extends SimpleEventsConsumer {
 	
 	Logger logger = LoggerFactory.getLogger(FromMongoWithSavingEventsConsumer.class);
 	
-	private Map<UUID,Set<BackgammonEvent>> eventsMap = new HashMap<>(100000);
-	private Map<UUID,Integer> totalNumOfEvents = new HashMap<>(100000);
+//	private Map<UUID,Set<BackgammonEvent>> eventsMap = new ConcurrentHashMap<>(100000);
+//	private Map<UUID,Integer> totalNumOfEvents = new ConcurrentHashMap<>(100000);
+	
+	@Autowired
+	private EventsBasketFromMongo eventsBasketFromMongo;
 	
 	public FromMongoWithSavingEventsConsumer() {
 
@@ -62,34 +69,40 @@ public class FromMongoWithSavingEventsConsumer extends SimpleEventsConsumer {
 			{
 				logger.info("Recieved the begin read events record, starting reading events from events store...");								
 				int tempTotalNumOfEvents = jsonNode.get("totalNumOfEvents").asInt();
-				totalNumOfEvents.put(UUID.fromString(uuid), Integer.valueOf(tempTotalNumOfEvents));
+				eventsBasketFromMongo.putTotalNumOfEventsFor(uuid, tempTotalNumOfEvents);
 			}
 			else if(clazz.equals("NewUserCreatedEvent")){
 				NewUserCreatedEvent newUserCreatedEvent = objectMapper.readValue(record.value(), NewUserCreatedEvent.class);
 				backgammonEvent = newUserCreatedEvent;
 		
-				addEventToCollectedEvents(uuid, backgammonEvent);
+				eventsBasketFromMongo.addEventToCollectedEvents(uuid, backgammonEvent);
 			}
 			else if(clazz.equals("NewUserJoinedLobbyEvent")){
 				NewUserJoinedLobbyEvent newUserJoinedLobbyEvent = objectMapper.readValue(record.value(), NewUserJoinedLobbyEvent.class);
 				backgammonEvent = newUserJoinedLobbyEvent;
 				
-				addEventToCollectedEvents(uuid, backgammonEvent);
+				eventsBasketFromMongo.addEventToCollectedEvents(uuid, backgammonEvent);
 			}
 			else if(clazz.equals("LoggedInEvent")){
 				LoggedInEvent loggedInEvent = objectMapper.readValue(record.value(), LoggedInEvent.class);
 				backgammonEvent = loggedInEvent;
 				
-				addEventToCollectedEvents(uuid, backgammonEvent);
+				eventsBasketFromMongo.addEventToCollectedEvents(uuid, backgammonEvent);
 			}
 			else if(clazz.equals("ExistingUserJoinedLobbyEvent")){
 				ExistingUserJoinedLobbyEvent existingUserJoinedLobbyEvent = objectMapper.readValue(record.value(), ExistingUserJoinedLobbyEvent.class);
 				backgammonEvent = existingUserJoinedLobbyEvent;
 				
-				addEventToCollectedEvents(uuid, backgammonEvent);
+				eventsBasketFromMongo.addEventToCollectedEvents(uuid, backgammonEvent);
 			}
-			
-			if(totalNumOfEvents.get(UUID.fromString(uuid)) != null && eventsMap.get(UUID.fromString(uuid)) != null && eventsMap.get(UUID.fromString(uuid)).size() == totalNumOfEvents.get(UUID.fromString(uuid))){
+			else if(clazz.equals("LoggedOutEvent")){
+				LogoutUserEvent logoutUserEvent = objectMapper.readValue(record.value(), LogoutUserEvent.class);
+				backgammonEvent = logoutUserEvent;
+				
+				eventsBasketFromMongo.addEventToCollectedEvents(uuid, backgammonEvent);
+			}
+		
+			if(eventsBasketFromMongo.isReadyHandleEventsFromMongo(uuid)){
 				logger.info("Updating SnapshotAPI with collected events data from mongo events store...");
 				
 				//do save
@@ -100,8 +113,7 @@ public class FromMongoWithSavingEventsConsumer extends SimpleEventsConsumer {
 				snapshotAPI.saveLatestSnapshotDate(latestEventDate);
 				logger.info("SnapshotAPI updated...");
 				
-				totalNumOfEvents.remove(UUID.fromString(uuid));
-				eventsMap.remove(UUID.fromString(uuid));
+				eventsBasketFromMongo.cleanByUuid(uuid);
 			}
 		}
 		catch(Exception ex){
@@ -110,18 +122,9 @@ public class FromMongoWithSavingEventsConsumer extends SimpleEventsConsumer {
 			ex.printStackTrace();
 		}
 	}
-
-	private void addEventToCollectedEvents(String uuid, BackgammonEvent backgammonEvent) {
-		if(!eventsMap.containsKey(UUID.fromString(uuid))){
-			Set<BackgammonEvent> eventsSet = new HashSet<>(100000);
-			eventsSet.add(backgammonEvent);
-			eventsMap.put(UUID.fromString(uuid), eventsSet);
-		}
-		else eventsMap.get(UUID.fromString(uuid)).add(backgammonEvent);
-	}
 	
 	public LinkedList<BackgammonEvent> getSortedListByArrivedDate(String uuid){
-		ArrayList<BackgammonEvent> fromMongoEventsStoreEventList = new ArrayList<>(eventsMap.get(UUID.fromString(uuid)));
+		ArrayList<BackgammonEvent> fromMongoEventsStoreEventList = new ArrayList<>(eventsBasketFromMongo.getEvents(uuid));
 		fromMongoEventsStoreEventList = (ArrayList<BackgammonEvent>) fromMongoEventsStoreEventList.stream().sorted((BackgammonEvent e1, BackgammonEvent e2) -> {return e1.getArrived().compareTo(e2.getArrived());}).collect(Collectors.toList());
 		return new LinkedList<>(fromMongoEventsStoreEventList);
 	}	

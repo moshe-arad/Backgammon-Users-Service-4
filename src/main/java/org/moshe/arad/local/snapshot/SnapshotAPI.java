@@ -20,6 +20,7 @@ import org.moshe.arad.kafka.KafkaUtils;
 import org.moshe.arad.kafka.events.BackgammonEvent;
 import org.moshe.arad.kafka.events.ExistingUserJoinedLobbyEvent;
 import org.moshe.arad.kafka.events.LoggedInEvent;
+import org.moshe.arad.kafka.events.LogoutUserEvent;
 import org.moshe.arad.kafka.events.NewUserCreatedEvent;
 import org.moshe.arad.kafka.events.NewUserJoinedLobbyEvent;
 import org.moshe.arad.kafka.producers.commands.ISimpleCommandProducer;
@@ -220,7 +221,7 @@ public class SnapshotAPI implements ApplicationContextAware {
 					logger.error("Failed convert backgammon user to json...");
 					logger.error(e.getMessage());
 					e.printStackTrace();
-				}
+				}				
 				currentSnapshot.get(CREATED_AND_LOGGED_IN).put(backgammonUser.getUserName(), backgammonUserJson);
 			}
 			else if(eventToFold.getClazz().equals("NewUserJoinedLobbyEvent")){
@@ -252,6 +253,7 @@ public class SnapshotAPI implements ApplicationContextAware {
 					logger.error(e.getMessage());
 					e.printStackTrace();
 				}
+				if(currentSnapshot.get(LOGGED_OUT).containsKey(backgammonUser.getUserName())) currentSnapshot.get(LOGGED_OUT).remove(backgammonUser.getUserName());
 				currentSnapshot.get(LOGGED_IN).put(backgammonUser.getUserName(), backgammonUserJson);
 			}
 			else if(eventToFold.getClazz().equals("ExistingUserJoinedLobbyEvent")){
@@ -271,6 +273,24 @@ public class SnapshotAPI implements ApplicationContextAware {
 				currentSnapshot.get(LOGGED_IN).remove(backgammonUser.getUserName());
 				currentSnapshot.get(LOBBY).put(backgammonUser.getUserName(), backgammonUserJson);
 			}
+			else if(eventToFold.getClazz().equals("LoggedOutEvent")){
+				LogoutUserEvent logoutUserEvent = (LogoutUserEvent) eventToFold;
+				BackgammonUser backgammonUser = logoutUserEvent.getBackgammonUser();
+				
+				ObjectMapper objectMapper = new ObjectMapper();
+				String backgammonUserJson = null;
+				try {
+					backgammonUserJson = objectMapper.writeValueAsString(backgammonUser);
+				} catch (JsonProcessingException e) {
+					logger.error("Failed convert backgammon user to json...");
+					logger.error(e.getMessage());
+					e.printStackTrace();
+				}
+				if(currentSnapshot.get(LOBBY).containsKey(backgammonUser.getUserName())) currentSnapshot.get(LOBBY).remove(backgammonUser.getUserName());
+				if(currentSnapshot.get(GAME).containsKey(backgammonUser.getUserName())) currentSnapshot.get(GAME).remove(backgammonUser.getUserName());
+				currentSnapshot.get(LOGGED_OUT).put(backgammonUser.getUserName(), backgammonUserJson);
+			}
+			
 			logger.info("Event to folded successfuly = " + eventToFold);
 			//TODO write code about logging out and in game code
 		}
