@@ -3,7 +3,7 @@ package org.moshe.arad.kafka.events;
 import java.util.Date;
 import java.util.UUID;
 
-public abstract class BackgammonEvent implements Comparable<BackgammonEvent>{
+public abstract class BackgammonEvent {
 
 	private UUID uuid;
 	private int serviceId;

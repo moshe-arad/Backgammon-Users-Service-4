@@ -62,9 +62,4 @@ public class LogoutUserEvent extends BackgammonEvent {
 			return false;
 		return true;
 	}
-	
-	@Override
-	public int compareTo(BackgammonEvent o) {
-		return this.compareTo(o);
-	}
 }
