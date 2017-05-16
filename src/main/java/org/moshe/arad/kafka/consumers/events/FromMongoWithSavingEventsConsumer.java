@@ -41,9 +41,6 @@ public class FromMongoWithSavingEventsConsumer extends SimpleEventsConsumer {
 	
 	Logger logger = LoggerFactory.getLogger(FromMongoWithSavingEventsConsumer.class);
 	
-//	private Map<UUID,Set<BackgammonEvent>> eventsMap = new ConcurrentHashMap<>(100000);
-//	private Map<UUID,Integer> totalNumOfEvents = new ConcurrentHashMap<>(100000);
-	
 	@Autowired
 	private EventsBasketFromMongo eventsBasketFromMongo;
 	

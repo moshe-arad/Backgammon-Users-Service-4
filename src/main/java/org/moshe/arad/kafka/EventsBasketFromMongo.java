@@ -1,13 +1,12 @@
 package org.moshe.arad.kafka;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.CopyOnWriteArraySet;
 
-import org.moshe.arad.kafka.consumers.events.FromMongoWithSavingEventsConsumer;
 import org.moshe.arad.kafka.events.BackgammonEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +41,7 @@ public class EventsBasketFromMongo {
 	
 	public void putTotalNumOfEventsFor(String uuid, int tempTotalNumOfEvents){
 		totalNumOfEvents.put(UUID.fromString(uuid), Integer.valueOf(tempTotalNumOfEvents));
+		if(tempTotalNumOfEvents == 0) eventsMap.put(UUID.fromString(uuid), new HashSet<>());
 	}
 	
 	public boolean isReadyHandleEventsFromMongo(String uuid){

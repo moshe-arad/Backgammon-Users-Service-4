@@ -114,7 +114,7 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 	@Override
 	public void initKafkaCommandsProducers() {
 		logger.info("Initializing pull events commands producer...");
-		initSingleProducer(pullEventsWithSavingCommandsProducer, 20, 20, TimeUnit.MINUTES, KafkaUtils.PULL_EVENTS_WITH_SAVING_COMMAND_TOPIC, null);
+		initSingleProducer(pullEventsWithSavingCommandsProducer, 10, 10, TimeUnit.MINUTES, KafkaUtils.PULL_EVENTS_WITH_SAVING_COMMAND_TOPIC, null);
 		logger.info("Initialize pull events commands producer, completed...");
 		
 		executeRunnablesProducersAndConsumers(Arrays.asList(pullEventsWithSavingCommandsProducer));
@@ -123,8 +123,8 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 	@Override
 	public void initKafkaEventsProducers() {		
 		logger.info("Initializing new user created events producer...");		
-		initSingleProducer(newUserCreatedAckEventsProducer, 500, 0, TimeUnit.MILLISECONDS, KafkaUtils.NEW_USER_CREATED_ACK_EVENT_TOPIC, toFrontServiceQueue);		
-		initSingleProducer(newUserCreatedEventsProducer, 500, 0, TimeUnit.MILLISECONDS, KafkaUtils.NEW_USER_CREATED_EVENT_TOPIC, toLobbyServiceQueue);
+		initSingleProducer(newUserCreatedAckEventsProducer, 10, 0, TimeUnit.MILLISECONDS, KafkaUtils.NEW_USER_CREATED_ACK_EVENT_TOPIC, toFrontServiceQueue);		
+		initSingleProducer(newUserCreatedEventsProducer, 10, 0, TimeUnit.MILLISECONDS, KafkaUtils.NEW_USER_CREATED_EVENT_TOPIC, toLobbyServiceQueue);
 		logger.info("Initialize new user created events producer, completed...");
 		
 		executeRunnablesProducersAndConsumers(Arrays.asList(newUserCreatedEventsProducer, newUserCreatedAckEventsProducer));

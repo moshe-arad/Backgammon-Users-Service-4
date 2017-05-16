@@ -65,7 +65,7 @@ public abstract class SimpleEventsConsumer implements Runnable , ISimpleEventCon
 					consumer.close();
 				}
 	    				        		        
-			} , 0, 100, TimeUnit.MILLISECONDS);
+			} , 0, 10, TimeUnit.MILLISECONDS);
 	}
 //	}
 	

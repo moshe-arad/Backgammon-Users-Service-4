@@ -62,11 +62,8 @@ public class SnapshotAPI implements ApplicationContextAware {
 	private ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
 	
 	public static final String LAST_UPDATED = "lastUpdateSnapshotDate";
-	public static final String CREATED_AND_LOGGED_IN = "CreatedAndLoggedIn";
-	public static final String LOGGED_IN = "LoggedIn";
-	public static final String LOBBY = "InLobby";
-	public static final String GAME = "InGame";
-	public static final String LOGGED_OUT = "LoggedOut";
+	
+	public static final String USERS = "Users";
 	
 	public boolean isLastUpdateDateExists(){
 		try{
@@ -101,29 +98,18 @@ public class SnapshotAPI implements ApplicationContextAware {
 		if(!isLastUpdateDateExists()) return null;
 		else{
 			readWriteLock.readLock().lock();
-			
-			Map<Object, Object> usersInCreatedAndLoggedIn = redisTemplate.opsForHash().entries(CREATED_AND_LOGGED_IN);
-			Map<Object, Object> usersInLoggedIn = redisTemplate.opsForHash().entries(LOGGED_IN);
-			Map<Object, Object> usersInLobby = redisTemplate.opsForHash().entries(LOBBY);
-			Map<Object, Object> usersInGame = redisTemplate.opsForHash().entries(GAME);
-			Map<Object, Object> usersInLoggedOut = redisTemplate.opsForHash().entries(LOGGED_OUT);
-			
+			Map<Object, Object> users = redisTemplate.opsForHash().entries(USERS);
 			readWriteLock.readLock().unlock();
 			
 			Map<String,Map<Object, Object>> result = new HashMap<String, Map<Object, Object>>(10000);
-			
-			if(usersInCreatedAndLoggedIn != null) result.put(CREATED_AND_LOGGED_IN, usersInCreatedAndLoggedIn);
-			if(usersInLoggedIn != null) result.put(LOGGED_IN, usersInLoggedIn);
-			if(usersInLobby != null) result.put(LOBBY, usersInLobby);
-			if(usersInGame != null) result.put(GAME, usersInGame);
-			if(usersInLoggedOut != null) result.put(LOGGED_OUT, usersInLoggedOut);
-			if(usersInCreatedAndLoggedIn != null) result.put(CREATED_AND_LOGGED_IN, usersInCreatedAndLoggedIn);
-		
+			if(users != null) result.put(USERS, users);
 			return result;
 		}
 	}	
 	
 	public Map<String,Map<Object, Object>> doEventsFoldingAndGetInstanceWithoutSaving(){		
+		long startTime = System.nanoTime();
+		
 		logger.info("Preparing command producer...");
 		PullEventsWithoutSavingCommandsProducer pullEventsWithoutSavingCommandsProducer = context.getBean(PullEventsWithoutSavingCommandsProducer.class);
 		UUID uuid = initSingleProducer(pullEventsWithoutSavingCommandsProducer, KafkaUtils.PULL_EVENTS_WITHOUT_SAVING_COMMAND_TOPIC);
@@ -135,13 +121,33 @@ public class SnapshotAPI implements ApplicationContextAware {
 		synchronized (current) {
 			try {				
 				lockers.put(uuid, current);
-				current.wait(5000);
+				current.wait();
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 		}
 		
-		return getInstanceFromEventsFold(eventsfromMongo.get(uuid));
+		long endTime = System.nanoTime();
+
+		long duration = (endTime - startTime);
+		logger.info("***************************************");
+		logger.info("****&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&***************");
+		logger.info("*******  duration = "+ duration+" *********");
+		logger.info("***************************************");
+		
+		
+		
+		long startTime1 = System.nanoTime();
+		Map<String,Map<Object, Object>> result = getInstanceFromEventsFold(eventsfromMongo.get(uuid));
+		long endTime1 = System.nanoTime();
+		
+		long duration1 = (endTime1 - startTime1);
+		logger.info("***************************************");
+		logger.info("*******&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&**********");
+		logger.info("*******  duration = "+ duration1+" *********");
+		logger.info("***************************************");
+		
+		return result;
 	}
 	
 	private UUID initSingleProducer(ISimpleCommandProducer producer, String topic) {
@@ -155,28 +161,19 @@ public class SnapshotAPI implements ApplicationContextAware {
 		
 		readWriteLock.writeLock().lock();
 		
-		redisTemplate.expire(CREATED_AND_LOGGED_IN, 1, TimeUnit.NANOSECONDS);
-		redisTemplate.expire(LOGGED_IN, 1, TimeUnit.NANOSECONDS);
-		redisTemplate.expire(LOBBY, 1, TimeUnit.NANOSECONDS);
-		redisTemplate.expire(GAME, 1, TimeUnit.NANOSECONDS);
-		redisTemplate.expire(LOGGED_OUT, 1, TimeUnit.NANOSECONDS);
 		redisTemplate.expire(LAST_UPDATED, 1, TimeUnit.NANOSECONDS);
+		redisTemplate.expire(USERS, 1, TimeUnit.NANOSECONDS);
 		
-		while(redisTemplate.hasKey(LOBBY) || redisTemplate.hasKey(GAME) || redisTemplate.hasKey(LOGGED_OUT) || redisTemplate.hasKey(CREATED_AND_LOGGED_IN) || redisTemplate.hasKey(LOGGED_IN) || redisTemplate.hasKey(LAST_UPDATED)){
+		while(redisTemplate.hasKey(USERS) || redisTemplate.hasKey(LAST_UPDATED)){
 			try {
-				Thread.sleep(1000);
+				Thread.sleep(100);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 		}
 		
 		
-		saveDataFromSnapshot(snapshot, LOBBY);
-		saveDataFromSnapshot(snapshot, GAME);
-		saveDataFromSnapshot(snapshot, LOGGED_OUT);
-		saveDataFromSnapshot(snapshot, LOGGED_IN);
-		saveDataFromSnapshot(snapshot, CREATED_AND_LOGGED_IN);
-		
+		saveDataFromSnapshot(snapshot, USERS);
 		readWriteLock.writeLock().unlock();				
 	}
 
@@ -195,11 +192,7 @@ public class SnapshotAPI implements ApplicationContextAware {
 		if(isLatestSnapshotExists) currentSnapshot = this.readLatestSnapshot();
 		else {
 			currentSnapshot = new HashMap<>(10000);
-			currentSnapshot.put(LOGGED_IN, new HashMap<>());
-			currentSnapshot.put(CREATED_AND_LOGGED_IN, new HashMap<>());
-			currentSnapshot.put(LOBBY, new HashMap<>());
-			currentSnapshot.put(GAME, new HashMap<>());
-			currentSnapshot.put(LOGGED_OUT, new HashMap<>());
+			currentSnapshot.put(USERS, new HashMap<>());
 		}
 
 		ListIterator<BackgammonEvent> it = fromMongoEventsStoreEventList.listIterator();
@@ -222,7 +215,7 @@ public class SnapshotAPI implements ApplicationContextAware {
 					logger.error(e.getMessage());
 					e.printStackTrace();
 				}				
-				currentSnapshot.get(CREATED_AND_LOGGED_IN).put(backgammonUser.getUserName(), backgammonUserJson);
+				currentSnapshot.get(USERS).put(backgammonUser.getUserName(), backgammonUserJson);
 			}
 			else if(eventToFold.getClazz().equals("NewUserJoinedLobbyEvent")){
 				NewUserJoinedLobbyEvent newUserJoinedLobbyEvent = (NewUserJoinedLobbyEvent) eventToFold;
@@ -237,8 +230,8 @@ public class SnapshotAPI implements ApplicationContextAware {
 					logger.error(e.getMessage());
 					e.printStackTrace();
 				}
-				currentSnapshot.get(CREATED_AND_LOGGED_IN).remove(backgammonUser.getUserName());
-				currentSnapshot.get(LOBBY).put(backgammonUser.getUserName(), backgammonUserJson);
+				
+				currentSnapshot.get(USERS).put(backgammonUser.getUserName(), backgammonUserJson);
 			}
 			else if(eventToFold.getClazz().equals("LoggedInEvent")){
 				LoggedInEvent loggedInEvent = (LoggedInEvent) eventToFold;
@@ -253,8 +246,8 @@ public class SnapshotAPI implements ApplicationContextAware {
 					logger.error(e.getMessage());
 					e.printStackTrace();
 				}
-				if(currentSnapshot.get(LOGGED_OUT).containsKey(backgammonUser.getUserName())) currentSnapshot.get(LOGGED_OUT).remove(backgammonUser.getUserName());
-				currentSnapshot.get(LOGGED_IN).put(backgammonUser.getUserName(), backgammonUserJson);
+	
+				currentSnapshot.get(USERS).put(backgammonUser.getUserName(), backgammonUserJson);
 			}
 			else if(eventToFold.getClazz().equals("ExistingUserJoinedLobbyEvent")){
 				ExistingUserJoinedLobbyEvent existingUserJoinedLobbyEvent = (ExistingUserJoinedLobbyEvent) eventToFold;
@@ -270,8 +263,7 @@ public class SnapshotAPI implements ApplicationContextAware {
 					e.printStackTrace();
 				}
 			
-				currentSnapshot.get(LOGGED_IN).remove(backgammonUser.getUserName());
-				currentSnapshot.get(LOBBY).put(backgammonUser.getUserName(), backgammonUserJson);
+				currentSnapshot.get(USERS).put(backgammonUser.getUserName(), backgammonUserJson);
 			}
 			else if(eventToFold.getClazz().equals("LoggedOutEvent")){
 				LogoutUserEvent logoutUserEvent = (LogoutUserEvent) eventToFold;
@@ -286,9 +278,8 @@ public class SnapshotAPI implements ApplicationContextAware {
 					logger.error(e.getMessage());
 					e.printStackTrace();
 				}
-				if(currentSnapshot.get(LOBBY).containsKey(backgammonUser.getUserName())) currentSnapshot.get(LOBBY).remove(backgammonUser.getUserName());
-				if(currentSnapshot.get(GAME).containsKey(backgammonUser.getUserName())) currentSnapshot.get(GAME).remove(backgammonUser.getUserName());
-				currentSnapshot.get(LOGGED_OUT).put(backgammonUser.getUserName(), backgammonUserJson);
+		
+				currentSnapshot.get(USERS).put(backgammonUser.getUserName(), backgammonUserJson);
 			}
 			
 			logger.info("Event to folded successfuly = " + eventToFold);

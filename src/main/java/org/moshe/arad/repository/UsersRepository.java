@@ -29,18 +29,35 @@ public class UsersRepository {
 	
 	public boolean isUserExists(BackgammonUser user) {
 		
+		long startTime = System.nanoTime();
 		Map<String,Map<Object, Object>> snapshot = snapshotAPI.doEventsFoldingAndGetInstanceWithoutSaving();
+		long endTime = System.nanoTime();
+
+		long duration = (endTime - startTime);
+		logger.info("***************************************");
+		logger.info("***************************************");
+		logger.info("*******  duration = "+ duration+" *********");
+		logger.info("***************************************");
+		
 		
 		if(snapshot == null) return false;
-		else return isUserExistsInSnapshot(user, snapshot);				
+		else {
+			long startTime1 = System.nanoTime();
+			boolean ans = isUserExistsInSnapshot(user, snapshot);			
+			long endTime1 = System.nanoTime();
+
+			long duration1 = (endTime1 - startTime1);
+			logger.info("***************************************");
+			logger.info("***************************************");
+			logger.info("*******  duration = "+ duration1+" *********");
+			logger.info("***************************************");
+			
+			return ans;
+		}
 	}
 		
 	private boolean isUserExistsInSnapshot(BackgammonUser user, Map<String,Map<Object, Object>> snapshot){
-		if(snapshot.get(SnapshotAPI.CREATED_AND_LOGGED_IN).containsKey(user.getUserName())) return true;
-		if(snapshot.get(SnapshotAPI.LOGGED_IN).containsKey(user.getUserName())) return true;
-		if(snapshot.get(SnapshotAPI.LOBBY).containsKey(user.getUserName())) return true;
-		if(snapshot.get(SnapshotAPI.GAME).containsKey(user.getUserName())) return true;
-		if(snapshot.get(SnapshotAPI.LOGGED_OUT).containsKey(user.getUserName())) return true;
+		if(snapshot.get(SnapshotAPI.USERS).containsKey(user.getUserName())) return true;
 		return false;		
 	}
 }
