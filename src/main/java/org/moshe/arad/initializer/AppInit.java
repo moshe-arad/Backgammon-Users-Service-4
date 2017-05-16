@@ -69,7 +69,7 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 	
 	private Logger logger = LoggerFactory.getLogger(AppInit.class);
 	
-	public static final int NUM_CONSUMERS = 3;
+	public static final int NUM_CONSUMERS = 5;
 	
 	public AppInit() {
 		
@@ -114,7 +114,7 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 	@Override
 	public void initKafkaCommandsProducers() {
 		logger.info("Initializing pull events commands producer...");
-		initSingleProducer(pullEventsWithSavingCommandsProducer, 10, 10, TimeUnit.MINUTES, KafkaUtils.PULL_EVENTS_WITH_SAVING_COMMAND_TOPIC, null);
+		initSingleProducer(pullEventsWithSavingCommandsProducer, 5, 1, TimeUnit.MINUTES, KafkaUtils.PULL_EVENTS_WITH_SAVING_COMMAND_TOPIC, null);
 		logger.info("Initialize pull events commands producer, completed...");
 		
 		executeRunnablesProducersAndConsumers(Arrays.asList(pullEventsWithSavingCommandsProducer));

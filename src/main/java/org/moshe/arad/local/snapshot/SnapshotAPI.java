@@ -108,8 +108,6 @@ public class SnapshotAPI implements ApplicationContextAware {
 	}	
 	
 	public Map<String,Map<Object, Object>> doEventsFoldingAndGetInstanceWithoutSaving(){		
-		long startTime = System.nanoTime();
-		
 		logger.info("Preparing command producer...");
 		PullEventsWithoutSavingCommandsProducer pullEventsWithoutSavingCommandsProducer = context.getBean(PullEventsWithoutSavingCommandsProducer.class);
 		UUID uuid = initSingleProducer(pullEventsWithoutSavingCommandsProducer, KafkaUtils.PULL_EVENTS_WITHOUT_SAVING_COMMAND_TOPIC);
@@ -127,26 +125,7 @@ public class SnapshotAPI implements ApplicationContextAware {
 			}
 		}
 		
-		long endTime = System.nanoTime();
-
-		long duration = (endTime - startTime);
-		logger.info("***************************************");
-		logger.info("****&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&***************");
-		logger.info("*******  duration = "+ duration+" *********");
-		logger.info("***************************************");
-		
-		
-		
-		long startTime1 = System.nanoTime();
 		Map<String,Map<Object, Object>> result = getInstanceFromEventsFold(eventsfromMongo.get(uuid));
-		long endTime1 = System.nanoTime();
-		
-		long duration1 = (endTime1 - startTime1);
-		logger.info("***************************************");
-		logger.info("*******&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&**********");
-		logger.info("*******  duration = "+ duration1+" *********");
-		logger.info("***************************************");
-		
 		return result;
 	}
 	
