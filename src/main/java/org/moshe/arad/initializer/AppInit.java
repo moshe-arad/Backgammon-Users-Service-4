@@ -11,12 +11,16 @@ import org.moshe.arad.kafka.ConsumerToProducerQueue;
 import org.moshe.arad.kafka.KafkaUtils;
 import org.moshe.arad.kafka.consumers.ISimpleConsumer;
 import org.moshe.arad.kafka.consumers.commands.CreateNewUserCommandsConsumer;
+import org.moshe.arad.kafka.consumers.commands.LogInUserCommandsConsumer;
 import org.moshe.arad.kafka.consumers.config.CreateNewUserCommandConfig;
 import org.moshe.arad.kafka.consumers.config.FromMongoWithSavingEventsConfig;
 import org.moshe.arad.kafka.consumers.config.FromMongoWithoutSavingEventsConfig;
+import org.moshe.arad.kafka.consumers.config.LogInUserCommandConfig;
 import org.moshe.arad.kafka.consumers.config.SimpleConsumerConfig;
 import org.moshe.arad.kafka.consumers.events.FromMongoWithSavingEventsConsumer;
 import org.moshe.arad.kafka.consumers.events.FromMongoWithoutSavingEventsConsumer;
+import org.moshe.arad.kafka.events.LogInUserAckEvent;
+import org.moshe.arad.kafka.events.LoggedInEvent;
 import org.moshe.arad.kafka.events.NewUserCreatedAckEvent;
 import org.moshe.arad.kafka.events.NewUserCreatedEvent;
 import org.moshe.arad.kafka.producers.ISimpleProducer;
@@ -59,6 +63,17 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 	@Autowired
 	private SimpleEventsProducer<NewUserCreatedAckEvent> newUserCreatedAckEventsProducer;
 	
+	private LogInUserCommandsConsumer logInUserCommandsConsumer;
+	
+	@Autowired
+	private LogInUserCommandConfig logInUserCommandConfig;
+	
+	@Autowired
+	private SimpleEventsProducer<LogInUserAckEvent> logInUserAckEventsProducer;
+	
+	@Autowired
+	private SimpleEventsProducer<LoggedInEvent> loggedInEventsProducer;
+	
 	private ApplicationContext context;
 	
 	private ExecutorService executor = Executors.newFixedThreadPool(4);
@@ -66,6 +81,10 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 	private ConsumerToProducerQueue toLobbyServiceQueue;
 	
 	private ConsumerToProducerQueue toFrontServiceQueue;
+	
+	private ConsumerToProducerQueue toViewServiceLogInUserCommandQueue;
+	
+	private ConsumerToProducerQueue toFrontServiceLogInUserCommandQueue;
 	
 	private Logger logger = LoggerFactory.getLogger(AppInit.class);
 	
@@ -80,16 +99,24 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 		toLobbyServiceQueue = context.getBean(ConsumerToProducerQueue.class);
 		toFrontServiceQueue = context.getBean(ConsumerToProducerQueue.class);
 		
+		toViewServiceLogInUserCommandQueue = context.getBean(ConsumerToProducerQueue.class);
+		toFrontServiceLogInUserCommandQueue = context.getBean(ConsumerToProducerQueue.class);
+		
 		for(int i=0; i<NUM_CONSUMERS; i++){
 			createNewUserCommandConsumer = context.getBean(CreateNewUserCommandsConsumer.class);
-			
+			logInUserCommandsConsumer = context.getBean(LogInUserCommandsConsumer.class);
+					
 			logger.info("Initializing create new user command consumer...");			
 			createNewUserCommandConsumer.setToLobbyServiceQueue(toLobbyServiceQueue);
 			createNewUserCommandConsumer.setToFrontServiceQueue(toFrontServiceQueue);			
 			initSingleConsumer(createNewUserCommandConsumer, KafkaUtils.CREATE_NEW_USER_COMMAND_TOPIC, createNewUserCommandConfig);			
+			
+			logInUserCommandsConsumer.setToViewServiceQueue(toViewServiceLogInUserCommandQueue);
+			logInUserCommandsConsumer.setToFrontServiceQueue(toFrontServiceLogInUserCommandQueue);
+			initSingleConsumer(logInUserCommandsConsumer, KafkaUtils.LOG_IN_USER_COMMAND_TOPIC, logInUserCommandConfig);
 			logger.info("Initialize create new user command consumer, completed...");
 			
-			executeRunnablesProducersAndConsumers(Arrays.asList(createNewUserCommandConsumer));
+			executeRunnablesProducersAndConsumers(Arrays.asList(createNewUserCommandConsumer, logInUserCommandsConsumer));
 		}
 	}
 
@@ -125,9 +152,14 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 		logger.info("Initializing new user created events producer...");		
 		initSingleProducer(newUserCreatedAckEventsProducer, 10, 0, TimeUnit.MILLISECONDS, KafkaUtils.NEW_USER_CREATED_ACK_EVENT_TOPIC, toFrontServiceQueue);		
 		initSingleProducer(newUserCreatedEventsProducer, 10, 0, TimeUnit.MILLISECONDS, KafkaUtils.NEW_USER_CREATED_EVENT_TOPIC, toLobbyServiceQueue);
+		
+		initSingleProducer(logInUserAckEventsProducer, 10, 0, TimeUnit.MILLISECONDS, KafkaUtils.LOG_IN_USER_ACK_EVENT_TOPIC, toFrontServiceLogInUserCommandQueue);
+		initSingleProducer(loggedInEventsProducer, 10, 0, TimeUnit.MILLISECONDS, KafkaUtils.LOGGED_IN_EVENT_TOPIC, toViewServiceLogInUserCommandQueue);
+		
 		logger.info("Initialize new user created events producer, completed...");
 		
-		executeRunnablesProducersAndConsumers(Arrays.asList(newUserCreatedEventsProducer, newUserCreatedAckEventsProducer));
+		executeRunnablesProducersAndConsumers(Arrays.asList(newUserCreatedEventsProducer, newUserCreatedAckEventsProducer,
+				logInUserAckEventsProducer,loggedInEventsProducer));
 	}
 
 	@Override

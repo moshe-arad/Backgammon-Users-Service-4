@@ -24,5 +24,9 @@ public class KafkaUtils {
 	public static final String FROM_MONGO_EVENTS_WITHOUT_SAVING_GROUP = "FromMongoEventsWithoutSavingGroup";
 	public static final String FROM_MONGO_TO_USERS_SERVICE_DESERIALIZER = "org.moshe.arad.kafka.deserializers.FromMongoEventsStoreEventConfig";
 	public static final String NEW_USER_CREATED_ACK_EVENT_TOPIC = "New-User-Created-Ack-Event";
-	public static final String FROM_MONGO_EVENTS_WITHOUT_SAVING_TOPIC = "From-Mongo-Events-Without-Saving";	
+	public static final String FROM_MONGO_EVENTS_WITHOUT_SAVING_TOPIC = "From-Mongo-Events-Without-Saving";
+	public static final String LOG_IN_USER_COMMAND_GROUP = "LogInUserCommandGroup";	
+	public static final String LOG_IN_USER_COMMAND_TOPIC = "Log-In-User-Command";
+	public static final String LOGGED_IN_EVENT_TOPIC = "Logged-In-Event";
+	public static final String LOG_IN_USER_ACK_EVENT_TOPIC = "Log-In-User-Ack-Event";
 }
