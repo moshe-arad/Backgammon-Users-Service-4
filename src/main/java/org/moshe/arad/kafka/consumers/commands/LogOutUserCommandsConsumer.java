@@ -7,15 +7,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.moshe.arad.entities.BackgammonUser;
 import org.moshe.arad.entities.Status;
 import org.moshe.arad.kafka.ConsumerToProducerQueue;
-import org.moshe.arad.kafka.commands.CreateNewUserCommand;
-import org.moshe.arad.kafka.commands.LogInUserCommand;
 import org.moshe.arad.kafka.commands.LogOutUserCommand;
-import org.moshe.arad.kafka.events.LogInUserAckEvent;
-import org.moshe.arad.kafka.events.LogOutUserAckEvent;
-import org.moshe.arad.kafka.events.LoggedInEvent;
 import org.moshe.arad.kafka.events.LoggedOutEvent;
-import org.moshe.arad.kafka.events.NewUserCreatedAckEvent;
-import org.moshe.arad.kafka.events.NewUserCreatedEvent;
 import org.moshe.arad.repository.UsersRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,14 +33,11 @@ public class LogOutUserCommandsConsumer extends SimpleCommandsConsumer {
 	
 	private ConsumerToProducerQueue toViewServiceQueue;
 	
-	private ConsumerToProducerQueue toFrontServiceQueue;
-	
 	public LogOutUserCommandsConsumer() {
 	}
 
 	@Override
 	public void consumerOperations(ConsumerRecord<String, String> record) {
-		LogOutUserAckEvent logOutUserAckEvent = context.getBean(LogOutUserAckEvent.class);
 		
 		LogOutUserCommand logOutUserCommand = convertJsonBlobIntoEvent(record.value());
 		logger.info("Log Out User Command record recieved, " + record.value());
@@ -57,12 +47,6 @@ public class LogOutUserCommandsConsumer extends SimpleCommandsConsumer {
 		try{
 			BackgammonUser user = usersRepository.isUserExistsAndReturn((logOutUserCommand.getBackgammonUser()));
 			if(user != null){
-								
-				logOutUserAckEvent.setUuid(logOutUserCommand.getUuid());
-				logOutUserAckEvent.setBackgammonUser(logOutUserCommand.getBackgammonUser());
-				logOutUserAckEvent.setUserFound(true);
-				
-				toFrontServiceQueue.getEventsQueue().put(logOutUserAckEvent);
 				
 				LoggedOutEvent loggedOutEvent = context.getBean(LoggedOutEvent.class);
 				loggedOutEvent.setUuid(logOutUserCommand.getUuid());
@@ -73,13 +57,7 @@ public class LogOutUserCommandsConsumer extends SimpleCommandsConsumer {
 				
 				toViewServiceQueue.getEventsQueue().put(loggedOutEvent);
 			}
-			else{
-				logOutUserAckEvent.setUuid(logOutUserCommand.getUuid());
-				logOutUserAckEvent.setBackgammonUser(logOutUserCommand.getBackgammonUser());
-				logOutUserAckEvent.setUserFound(false);
-				
-				toFrontServiceQueue.getEventsQueue().put(logOutUserAckEvent);				
-			}
+			else throw new RuntimeException("User was not found...");
 			
 			logger.info("Ack Reply was send to front service...");
 		}
@@ -109,14 +87,6 @@ public class LogOutUserCommandsConsumer extends SimpleCommandsConsumer {
 	public void setToViewServiceQueue(ConsumerToProducerQueue toViewServiceQueue) {
 		this.toViewServiceQueue = toViewServiceQueue;
 	}
-
-	public ConsumerToProducerQueue getToFrontServiceQueue() {
-		return toFrontServiceQueue;
-	}
-
-	public void setToFrontServiceQueue(ConsumerToProducerQueue toFrontServiceQueue) {
-		this.toFrontServiceQueue = toFrontServiceQueue;
-	}	
 }
 
 
