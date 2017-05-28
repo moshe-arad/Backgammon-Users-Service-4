@@ -20,6 +20,7 @@ import org.moshe.arad.kafka.events.LoggedInEvent;
 import org.moshe.arad.kafka.events.LogoutUserEvent;
 import org.moshe.arad.kafka.events.NewUserCreatedEvent;
 import org.moshe.arad.kafka.events.NewUserJoinedLobbyEvent;
+import org.moshe.arad.kafka.events.UserPermissionsUpdatedEvent;
 import org.moshe.arad.local.snapshot.SnapshotAPI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,6 +94,12 @@ public class FromMongoWithoutSavingEventsConsumer extends SimpleEventsConsumer {
 			else if(clazz.equals("LoggedOutEvent")){
 				LogoutUserEvent logoutUserEvent = objectMapper.readValue(record.value(), LogoutUserEvent.class);
 				backgammonEvent = logoutUserEvent;
+				
+				eventsBasketFromMongo.addEventToCollectedEvents(uuid, backgammonEvent);
+			}
+			else if(clazz.equals("UserPermissionsUpdatedEvent")){
+				UserPermissionsUpdatedEvent userPermissionsUpdatedEvent = objectMapper.readValue(record.value(), UserPermissionsUpdatedEvent.class);
+				backgammonEvent = userPermissionsUpdatedEvent;
 				
 				eventsBasketFromMongo.addEventToCollectedEvents(uuid, backgammonEvent);
 			}

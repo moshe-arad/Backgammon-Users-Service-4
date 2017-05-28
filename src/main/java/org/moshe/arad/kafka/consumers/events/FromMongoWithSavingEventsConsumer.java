@@ -22,6 +22,7 @@ import org.moshe.arad.kafka.events.LoggedInEvent;
 import org.moshe.arad.kafka.events.LogoutUserEvent;
 import org.moshe.arad.kafka.events.NewUserCreatedEvent;
 import org.moshe.arad.kafka.events.NewUserJoinedLobbyEvent;
+import org.moshe.arad.kafka.events.UserPermissionsUpdatedEvent;
 import org.moshe.arad.local.snapshot.SnapshotAPI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -98,7 +99,13 @@ public class FromMongoWithSavingEventsConsumer extends SimpleEventsConsumer {
 				
 				eventsBasketFromMongo.addEventToCollectedEvents(uuid, backgammonEvent);
 			}
-		
+			else if(clazz.equals("UserPermissionsUpdatedEvent")){
+				UserPermissionsUpdatedEvent userPermissionsUpdatedEvent = objectMapper.readValue(record.value(), UserPermissionsUpdatedEvent.class);
+				backgammonEvent = userPermissionsUpdatedEvent;
+				
+				eventsBasketFromMongo.addEventToCollectedEvents(uuid, backgammonEvent);
+			}
+			
 			if(eventsBasketFromMongo.isReadyHandleEventsFromMongo(uuid)){
 				logger.info("Updating SnapshotAPI with collected events data from mongo events store...");
 				
