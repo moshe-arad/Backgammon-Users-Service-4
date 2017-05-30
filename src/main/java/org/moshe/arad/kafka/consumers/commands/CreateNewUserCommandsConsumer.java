@@ -36,7 +36,7 @@ public class CreateNewUserCommandsConsumer extends SimpleCommandsConsumer {
 
 	@Override
 	public void consumerOperations(ConsumerRecord<String, String> record) {
-		NewUserCreatedAckEvent newUserCreatedAckEvent = null;
+//		NewUserCreatedAckEvent newUserCreatedAckEvent = null;
 		CreateNewUserCommand createNewUserCommand = convertJsonBlobIntoEvent(record.value());
 		logger.info("Create New User Command record recieved, " + record.value());
     	
@@ -50,7 +50,6 @@ public class CreateNewUserCommandsConsumer extends SimpleCommandsConsumer {
 				logger.error("*************************************");
 				logger.error("*************************************");
 								
-				newUserCreatedAckEvent = new NewUserCreatedAckEvent(createNewUserCommand.getUuid(), 1, 1, new Date(), "NewUserCreatedAckEvent", false);
 			}
 			else{
 				logger.info("Creating New User Created Event... ");
@@ -58,14 +57,8 @@ public class CreateNewUserCommandsConsumer extends SimpleCommandsConsumer {
 				NewUserCreatedEvent newUserCreatedEvent = new NewUserCreatedEvent(createNewUserCommand.getUuid(), 
 						1, 1, new Date(), "NewUserCreatedEvent", createNewUserCommand.getBackgammonUser()); 
 		    	toLobbyServiceQueue.getEventsQueue().put(newUserCreatedEvent);
-		    	logger.info("Event created and passed to consumer...");
-		    			
-				newUserCreatedAckEvent = new NewUserCreatedAckEvent(createNewUserCommand.getUuid(), 1, 1, new Date(), "NewUserCreatedAckEvent", true);				
+		    	logger.info("Event created and passed to consumer...");		    					
 			}
-			
-			logger.info("Creating New User Created Ack Event... ");
-			toFrontServiceQueue.getEventsQueue().put(newUserCreatedAckEvent);
-			logger.info("Ack Reply was send to front service...");
 		}
 		catch (Exception e) {
 			logger.error("Failed to create new user, please try again...");
