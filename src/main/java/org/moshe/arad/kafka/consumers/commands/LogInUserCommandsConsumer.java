@@ -43,9 +43,7 @@ public class LogInUserCommandsConsumer extends SimpleCommandsConsumer {
 	}
 
 	@Override
-	public void consumerOperations(ConsumerRecord<String, String> record) {
-		LogInUserAckEvent logInUserAckEvent = context.getBean(LogInUserAckEvent.class);
-		
+	public void consumerOperations(ConsumerRecord<String, String> record) {		
 		LogInUserCommand logInUserCommand = convertJsonBlobIntoEvent(record.value());
 		logger.info("Log In User Command record recieved, " + record.value());
     	
@@ -54,13 +52,6 @@ public class LogInUserCommandsConsumer extends SimpleCommandsConsumer {
 		try{
 			BackgammonUser user = usersRepository.isUserExistsAndReturn(logInUserCommand.getUser());
 			if(user != null){
-								
-				logInUserAckEvent.setUuid(logInUserCommand.getUuid());
-				logInUserAckEvent.setBackgammonUser(logInUserCommand.getUser());
-				logInUserAckEvent.setUserFound(true);
-				
-				toFrontServiceQueue.getEventsQueue().put(logInUserAckEvent);
-				
 				LoggedInEvent loggedInEvent = context.getBean(LoggedInEvent.class);
 				loggedInEvent.setUuid(logInUserCommand.getUuid());
 				loggedInEvent.setArrived(new Date());
@@ -70,15 +61,6 @@ public class LogInUserCommandsConsumer extends SimpleCommandsConsumer {
 				
 				toViewServiceQueue.getEventsQueue().put(loggedInEvent);
 			}
-			else{
-				logInUserAckEvent.setUuid(logInUserCommand.getUuid());
-				logInUserAckEvent.setBackgammonUser(logInUserCommand.getUser());
-				logInUserAckEvent.setUserFound(false);
-				
-				toFrontServiceQueue.getEventsQueue().put(logInUserAckEvent);				
-			}
-			
-			logger.info("Ack Reply was send to front service...");
 		}
 		catch (Exception e) {
 			logger.error("Failed to create new user, please try again...");

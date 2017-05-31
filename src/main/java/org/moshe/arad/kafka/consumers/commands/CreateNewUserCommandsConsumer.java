@@ -1,6 +1,7 @@
 package org.moshe.arad.kafka.consumers.commands;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Date;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -54,6 +55,7 @@ public class CreateNewUserCommandsConsumer extends SimpleCommandsConsumer {
 			else{
 				logger.info("Creating New User Created Event... ");
 				createNewUserCommand.getBackgammonUser().setStatus(Status.CreatedAndLoggedIn);
+				createNewUserCommand.getBackgammonUser().setUser_permissions(Arrays.asList("user"));
 				NewUserCreatedEvent newUserCreatedEvent = new NewUserCreatedEvent(createNewUserCommand.getUuid(), 
 						1, 1, new Date(), "NewUserCreatedEvent", createNewUserCommand.getBackgammonUser()); 
 		    	toLobbyServiceQueue.getEventsQueue().put(newUserCreatedEvent);
