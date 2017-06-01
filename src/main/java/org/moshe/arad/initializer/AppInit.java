@@ -20,9 +20,11 @@ import org.moshe.arad.kafka.consumers.config.LogInUserCommandConfig;
 import org.moshe.arad.kafka.consumers.config.LogOutUserCommandConfig;
 import org.moshe.arad.kafka.consumers.config.NewGameRoomOpenedEventConfig;
 import org.moshe.arad.kafka.consumers.config.SimpleConsumerConfig;
+import org.moshe.arad.kafka.consumers.config.UserAddedAsWatcherEventConfig;
 import org.moshe.arad.kafka.consumers.events.FromMongoWithSavingEventsConsumer;
 import org.moshe.arad.kafka.consumers.events.FromMongoWithoutSavingEventsConsumer;
 import org.moshe.arad.kafka.consumers.events.NewGameRoomOpenedEventConsumer;
+import org.moshe.arad.kafka.consumers.events.UserAddedAsWatcherEventConsumer;
 import org.moshe.arad.kafka.events.LogInUserAckEvent;
 import org.moshe.arad.kafka.events.LoggedInEvent;
 import org.moshe.arad.kafka.events.LoggedOutEvent;
@@ -96,6 +98,14 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 	@Autowired
 	private SimpleEventsProducer<UserPermissionsUpdatedEvent> userPermissionsUpdatedEventProducer;
 	
+	private UserAddedAsWatcherEventConsumer userAddedAsWatcherEventConsumer;
+	
+	@Autowired
+	private UserAddedAsWatcherEventConfig userAddedAsWatcherEventConfig;
+	
+	@Autowired
+	private SimpleEventsProducer<UserPermissionsUpdatedEvent> userPermissionsUpdatedAfterAddWatcherEventProducer;
+	
 	private ApplicationContext context;
 	
 	private ExecutorService executor = Executors.newFixedThreadPool(4);
@@ -113,6 +123,8 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 	private ConsumerToProducerQueue toFrontServiceLogOutUserCommandQueue;
 	
 	private ConsumerToProducerQueue userPermissionsUpdatedQueue;
+	
+	private ConsumerToProducerQueue userAddedAsWatcherQueue;
 	
 	private Logger logger = LoggerFactory.getLogger(AppInit.class);
 	
@@ -160,11 +172,13 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 	public void initKafkaEventsConsumers() {
 		
 		userPermissionsUpdatedQueue = context.getBean(ConsumerToProducerQueue.class);
+		userAddedAsWatcherQueue = context.getBean(ConsumerToProducerQueue.class);
 		
 		for(int i=0; i<NUM_CONSUMERS; i++){
 			fromMongoWithSavingEventsConsumer = context.getBean(FromMongoWithSavingEventsConsumer.class);
 			fromMongoWithoutSavingEventsConsumer = context.getBean(FromMongoWithoutSavingEventsConsumer.class);
 			newGameRoomOpenedEventConsumer = context.getBean(NewGameRoomOpenedEventConsumer.class);
+			userAddedAsWatcherEventConsumer = context.getBean(UserAddedAsWatcherEventConsumer.class);
 			
 			logger.info("Initializing from mongo events store event consumer...");
 			initSingleConsumer(fromMongoWithSavingEventsConsumer, KafkaUtils.FROM_MONGO_EVENTS_WITH_SAVING_TOPIC, fromMongoWithSavingEventsConfig);
@@ -176,9 +190,13 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 			newGameRoomOpenedEventConsumer.setConsumerToProducerQueue(userPermissionsUpdatedQueue);
 			initSingleConsumer(newGameRoomOpenedEventConsumer, KafkaUtils.NEW_GAME_ROOM_OPENED_EVENT_TOPIC, newGameRoomOpenedEventConfig);
 			
+			userAddedAsWatcherEventConsumer.setConsumerToProducerQueue(userAddedAsWatcherQueue);
+			initSingleConsumer(userAddedAsWatcherEventConsumer, KafkaUtils.USER_ADDED_AS_WATCHER_EVENT_TOPIC, userAddedAsWatcherEventConfig);
+			
 			executeRunnablesProducersAndConsumers(Arrays.asList(fromMongoWithSavingEventsConsumer, 
 					fromMongoWithoutSavingEventsConsumer,
-					newGameRoomOpenedEventConsumer));
+					newGameRoomOpenedEventConsumer,
+					userAddedAsWatcherEventConsumer));
 		}
 	}
 
@@ -206,10 +224,13 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 		
 		initSingleProducer(userPermissionsUpdatedEventProducer, 10, 0, TimeUnit.MILLISECONDS, KafkaUtils.USER_PERMISSIONS_UPDATED_EVENT_TOPIC, userPermissionsUpdatedQueue);
 		
+		initSingleProducer(userPermissionsUpdatedAfterAddWatcherEventProducer, 10, 0, TimeUnit.MILLISECONDS, KafkaUtils.USER_PERMISSIONS_UPDATED_USER_ADDED_WATCHER_EVENT_TOPIC, userAddedAsWatcherQueue);
+		
 		executeRunnablesProducersAndConsumers(Arrays.asList(newUserCreatedEventsProducer, newUserCreatedAckEventsProducer,
 				logInUserAckEventsProducer,loggedInEventsProducer,
 				loggedOutEventProducer,
-				userPermissionsUpdatedEventProducer));
+				userPermissionsUpdatedEventProducer,
+				userPermissionsUpdatedAfterAddWatcherEventProducer));
 	}
 
 	@Override
