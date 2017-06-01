@@ -39,4 +39,7 @@ public class KafkaUtils {
 	public static final String USER_ADDED_AS_WATCHER_EVENT_GROUP = "UserAddedAsWatcherEventGroup3";
 	public static final String USER_ADDED_AS_WATCHER_EVENT_TOPIC = "User-Added-As-Watcher-Event";
 	public static final String USER_PERMISSIONS_UPDATED_USER_ADDED_WATCHER_EVENT_TOPIC = "User-Permissions-Updated-User-Added-Watcher-Event";
+	public static final String USER_ADDED_AS_SECOND_PLAYER_EVENT_GROUP = "UserAddedAsSecondPlayerEventGroup3";
+	public static final String USER_ADDED_AS_SECOND_PLAYER_EVENT_TOPIC = "User-Added-As-Second-Player-Event";
+	public static final String USER_PERMISSIONS_UPDATED_USER_ADDED_SECOND_PLAYER_EVENT_TOPIC = "User-Permissions-Updated-User-Added-Second-Player-Event";
 }
