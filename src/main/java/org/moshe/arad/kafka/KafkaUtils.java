@@ -42,4 +42,7 @@ public class KafkaUtils {
 	public static final String USER_ADDED_AS_SECOND_PLAYER_EVENT_GROUP = "UserAddedAsSecondPlayerEventGroup3";
 	public static final String USER_ADDED_AS_SECOND_PLAYER_EVENT_TOPIC = "User-Added-As-Second-Player-Event";
 	public static final String USER_PERMISSIONS_UPDATED_USER_ADDED_SECOND_PLAYER_EVENT_TOPIC = "User-Permissions-Updated-User-Added-Second-Player-Event";
+	public static final String LOGGED_OUT_USER_LEFT_LOBBY_EVENT_GROUP = "LoggedOutUserLeftLobbyEventGroup2";
+	public static final String LOGGED_OUT_USER_LEFT_LOBBY_EVENT_TOPIC = "Logged-Out-User-Left-Lobby-Event";
+	public static final String USER_PERMISSIONS_UPDATED_USER_LEFT_LOBBY_EVENT_TOPIC = "User-Permissions-Updated-User-Left-Lobby-Event";
 }

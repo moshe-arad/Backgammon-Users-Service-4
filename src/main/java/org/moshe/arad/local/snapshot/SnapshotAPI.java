@@ -20,6 +20,7 @@ import org.moshe.arad.kafka.KafkaUtils;
 import org.moshe.arad.kafka.events.BackgammonEvent;
 import org.moshe.arad.kafka.events.ExistingUserJoinedLobbyEvent;
 import org.moshe.arad.kafka.events.LoggedInEvent;
+import org.moshe.arad.kafka.events.LoggedOutUserLeftLobbyEvent;
 import org.moshe.arad.kafka.events.LogoutUserEvent;
 import org.moshe.arad.kafka.events.NewUserCreatedEvent;
 import org.moshe.arad.kafka.events.NewUserJoinedLobbyEvent;
@@ -264,6 +265,22 @@ public class SnapshotAPI implements ApplicationContextAware {
 			else if(eventToFold.getClazz().equals("UserPermissionsUpdatedEvent")){
 				UserPermissionsUpdatedEvent userPermissionsUpdatedEvent = (UserPermissionsUpdatedEvent) eventToFold;
 				BackgammonUser backgammonUser = userPermissionsUpdatedEvent.getBackgammonUser();
+				
+				ObjectMapper objectMapper = new ObjectMapper();
+				String backgammonUserJson = null;
+				try {
+					backgammonUserJson = objectMapper.writeValueAsString(backgammonUser);
+				} catch (JsonProcessingException e) {
+					logger.error("Failed convert backgammon user to json...");
+					logger.error(e.getMessage());
+					e.printStackTrace();
+				}
+		
+				currentSnapshot.get(USERS).put(backgammonUser.getUserName(), backgammonUserJson);
+			}
+			else if(eventToFold.getClazz().equals("LoggedOutUserLeftLobbyEvent")){
+				LoggedOutUserLeftLobbyEvent loggedOutUserLeftLobbyEvent = (LoggedOutUserLeftLobbyEvent) eventToFold;
+				BackgammonUser backgammonUser = loggedOutUserLeftLobbyEvent.getBackgammonUser();
 				
 				ObjectMapper objectMapper = new ObjectMapper();
 				String backgammonUserJson = null;

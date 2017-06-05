@@ -22,6 +22,7 @@ import org.moshe.arad.kafka.events.LoggedInEvent;
 import org.moshe.arad.kafka.events.LogoutUserEvent;
 import org.moshe.arad.kafka.events.NewUserCreatedEvent;
 import org.moshe.arad.kafka.events.NewUserJoinedLobbyEvent;
+import org.moshe.arad.kafka.events.LoggedOutUserLeftLobbyEvent;
 import org.moshe.arad.kafka.events.UserPermissionsUpdatedEvent;
 import org.moshe.arad.local.snapshot.SnapshotAPI;
 import org.slf4j.Logger;
@@ -105,18 +106,26 @@ public class FromMongoWithSavingEventsConsumer extends SimpleEventsConsumer {
 				
 				eventsBasketFromMongo.addEventToCollectedEvents(uuid, backgammonEvent);
 			}
+			else if(clazz.equals("LoggedOutUserLeftLobbyEvent")){
+				LoggedOutUserLeftLobbyEvent userLeftLobbyEvent = objectMapper.readValue(record.value(), LoggedOutUserLeftLobbyEvent.class);
+				backgammonEvent = userLeftLobbyEvent;
+				
+				eventsBasketFromMongo.addEventToCollectedEvents(uuid, backgammonEvent);
+			}
 			
 			if(eventsBasketFromMongo.isReadyHandleEventsFromMongo(uuid)){
 				logger.info("Updating SnapshotAPI with collected events data from mongo events store...");
 				
 				//do save
 				LinkedList<BackgammonEvent> sortedEvents = getSortedListByArrivedDate(uuid);
-				Date latestEventDate = sortedEvents.getLast().getArrived();
-			
-				snapshotAPI.updateLatestSnapshot(snapshotAPI.getInstanceFromEventsFold(sortedEvents));
-				snapshotAPI.saveLatestSnapshotDate(latestEventDate);
-				logger.info("SnapshotAPI updated...");
 				
+				if(sortedEvents.size() > 0){
+					Date latestEventDate = sortedEvents.getLast().getArrived();
+					snapshotAPI.updateLatestSnapshot(snapshotAPI.getInstanceFromEventsFold(sortedEvents));
+					snapshotAPI.saveLatestSnapshotDate(latestEventDate);
+					logger.info("SnapshotAPI updated...");
+				}				
+			
 				eventsBasketFromMongo.cleanByUuid(uuid);
 			}
 		}

@@ -35,7 +35,9 @@ public class UsersRepository {
 		BackgammonUser result = null;
 		ObjectMapper objectMapper = new ObjectMapper();
 		try {
-			result = objectMapper.readValue(snapshot.get(SnapshotAPI.USERS).get(user.getUserName()).toString(), BackgammonUser.class);
+			if(snapshot.get(SnapshotAPI.USERS) != null){
+				result = objectMapper.readValue(snapshot.get(SnapshotAPI.USERS).get(user.getUserName()).toString(), BackgammonUser.class);
+			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
