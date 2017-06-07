@@ -19,6 +19,7 @@ import org.moshe.arad.kafka.consumers.config.FromMongoWithoutSavingEventsConfig;
 import org.moshe.arad.kafka.consumers.config.LogInUserCommandConfig;
 import org.moshe.arad.kafka.consumers.config.LogOutUserCommandConfig;
 import org.moshe.arad.kafka.consumers.config.LoggedOutOpenByLeftBeforeGameStartedEventConfig;
+import org.moshe.arad.kafka.consumers.config.LoggedOutOpenByLeftEventConfig;
 import org.moshe.arad.kafka.consumers.config.NewGameRoomOpenedEventConfig;
 import org.moshe.arad.kafka.consumers.config.SimpleConsumerConfig;
 import org.moshe.arad.kafka.consumers.config.UserAddedAsSecondPlayerEventConfig;
@@ -27,6 +28,7 @@ import org.moshe.arad.kafka.consumers.config.LoggedOutUserLeftLobbyEventConfig;
 import org.moshe.arad.kafka.consumers.events.FromMongoWithSavingEventsConsumer;
 import org.moshe.arad.kafka.consumers.events.FromMongoWithoutSavingEventsConsumer;
 import org.moshe.arad.kafka.consumers.events.LoggedOutOpenByLeftBeforeGameStartedEventConsumer;
+import org.moshe.arad.kafka.consumers.events.LoggedOutOpenByLeftEventConsumer;
 import org.moshe.arad.kafka.consumers.events.NewGameRoomOpenedEventConsumer;
 import org.moshe.arad.kafka.consumers.events.UserAddedAsSecondPlayerEventConsumer;
 import org.moshe.arad.kafka.consumers.events.UserAddedAsWatcherEventConsumer;
@@ -136,6 +138,14 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 	@Autowired
 	private SimpleEventsProducer<UserPermissionsUpdatedEvent> userPermissionsUpdatedAfterloggedOutOpenByLeftBeforeGameStartedProducer;
 	
+	private LoggedOutOpenByLeftEventConsumer loggedOutOpenByLeftEventConsumer;
+	
+	@Autowired
+	private LoggedOutOpenByLeftEventConfig loggedOutOpenByLeftEventConfig;
+	
+	@Autowired
+	private SimpleEventsProducer<UserPermissionsUpdatedEvent> userPermissionsUpdatedAfterloggedOutOpenByLeftProducer;
+	
 	private ApplicationContext context;
 	
 	private ExecutorService executor = Executors.newFixedThreadPool(4);
@@ -159,6 +169,8 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 	private ConsumerToProducerQueue loggedOutUserLeftlobbyQueue;
 	
 	private ConsumerToProducerQueue loggedOutOpenByLeftBeforeGameStartedQueue;
+	
+	private ConsumerToProducerQueue loggedOutOpenByLeftQueue;
 	
 	private Logger logger = LoggerFactory.getLogger(AppInit.class);
 	
@@ -209,6 +221,7 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 		userAddedAsSecondPlayerQueue = context.getBean(ConsumerToProducerQueue.class);
 		loggedOutUserLeftlobbyQueue = context.getBean(ConsumerToProducerQueue.class);
 		loggedOutOpenByLeftBeforeGameStartedQueue = context.getBean(ConsumerToProducerQueue.class);
+		loggedOutOpenByLeftQueue = context.getBean(ConsumerToProducerQueue.class);
 		
 		for(int i=0; i<NUM_CONSUMERS; i++){
 			fromMongoWithSavingEventsConsumer = context.getBean(FromMongoWithSavingEventsConsumer.class);
@@ -218,6 +231,7 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 			userAddedAsSecondPlayerEventConsumer = context.getBean(UserAddedAsSecondPlayerEventConsumer.class);
 			loggedOutUserLeftLobbyEventConsumer = context.getBean(LoggedOutUserLeftLobbyEventConsumer.class);
 			loggedOutOpenByLeftBeforeGameStartedEventConsumer = context.getBean(LoggedOutOpenByLeftBeforeGameStartedEventConsumer.class);
+			loggedOutOpenByLeftEventConsumer = context.getBean(LoggedOutOpenByLeftEventConsumer.class);
 			
 			logger.info("Initializing from mongo events store event consumer...");
 			initSingleConsumer(fromMongoWithSavingEventsConsumer, KafkaUtils.FROM_MONGO_EVENTS_WITH_SAVING_TOPIC, fromMongoWithSavingEventsConfig);
@@ -241,13 +255,17 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 			loggedOutOpenByLeftBeforeGameStartedEventConsumer.setConsumerToProducerQueue(loggedOutOpenByLeftBeforeGameStartedQueue);
 			initSingleConsumer(loggedOutOpenByLeftBeforeGameStartedEventConsumer, KafkaUtils.LOGGED_OUT_OPENBY_LEFT_BEFORE_GAME_STARTED_EVENT_TOPIC, loggedOutOpenByLeftBeforeGameStartedEventConfig);
 			
+			loggedOutOpenByLeftEventConsumer.setConsumerToProducerQueue(loggedOutOpenByLeftQueue);
+			initSingleConsumer(loggedOutOpenByLeftEventConsumer, KafkaUtils.LOGGED_OUT_OPENBY_LEFT_EVENT_TOPIC, loggedOutOpenByLeftEventConfig);
+			
 			executeRunnablesProducersAndConsumers(Arrays.asList(fromMongoWithSavingEventsConsumer, 
 					fromMongoWithoutSavingEventsConsumer,
 					newGameRoomOpenedEventConsumer,
 					userAddedAsWatcherEventConsumer,
 					userAddedAsSecondPlayerEventConsumer,
 					loggedOutUserLeftLobbyEventConsumer,
-					loggedOutOpenByLeftBeforeGameStartedEventConsumer));
+					loggedOutOpenByLeftBeforeGameStartedEventConsumer,
+					loggedOutOpenByLeftEventConsumer));
 		}
 	}
 
@@ -283,6 +301,8 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 		
 		initSingleProducer(userPermissionsUpdatedAfterloggedOutOpenByLeftBeforeGameStartedProducer, 10, 0, TimeUnit.MILLISECONDS, KafkaUtils.USER_PERMISSIONS_UPDATED_LOGGED_OUT_OPENBY_LEFT_BEFORE_GAME_STARTED_EVENT_TOPIC, loggedOutOpenByLeftBeforeGameStartedQueue);
 		
+		initSingleProducer(userPermissionsUpdatedAfterloggedOutOpenByLeftProducer, 10, 0, TimeUnit.MILLISECONDS, KafkaUtils.USER_PERMISSIONS_UPDATED_LOGGED_OUT_OPENBY_LEFT_EVENT_TOPIC, loggedOutOpenByLeftQueue);
+		
 		executeRunnablesProducersAndConsumers(Arrays.asList(newUserCreatedEventsProducer, newUserCreatedAckEventsProducer,
 				logInUserAckEventsProducer,loggedInEventsProducer,
 				userPermissionsUpdatedEventProducer,
@@ -290,7 +310,8 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 				userPermissionsUpdatedAfterAddSecondPlayerEventProducer,
 				loggedOutEventProducer,
 				userPermissionsUpdatedAfterLeftLobbyProducer,
-				userPermissionsUpdatedAfterloggedOutOpenByLeftBeforeGameStartedProducer));
+				userPermissionsUpdatedAfterloggedOutOpenByLeftBeforeGameStartedProducer,
+				userPermissionsUpdatedAfterloggedOutOpenByLeftProducer));
 	}
 
 	@Override
