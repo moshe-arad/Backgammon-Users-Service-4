@@ -21,6 +21,7 @@ import org.moshe.arad.kafka.consumers.config.LogOutUserCommandConfig;
 import org.moshe.arad.kafka.consumers.config.LoggedOutOpenByLeftBeforeGameStartedEventConfig;
 import org.moshe.arad.kafka.consumers.config.LoggedOutOpenByLeftEventConfig;
 import org.moshe.arad.kafka.consumers.config.LoggedOutOpenByLeftFirstEventConfig;
+import org.moshe.arad.kafka.consumers.config.LoggedOutSecondLeftFirstEventConfig;
 import org.moshe.arad.kafka.consumers.config.NewGameRoomOpenedEventConfig;
 import org.moshe.arad.kafka.consumers.config.SimpleConsumerConfig;
 import org.moshe.arad.kafka.consumers.config.UserAddedAsSecondPlayerEventConfig;
@@ -33,6 +34,7 @@ import org.moshe.arad.kafka.consumers.events.FromMongoWithoutSavingEventsConsume
 import org.moshe.arad.kafka.consumers.events.LoggedOutOpenByLeftBeforeGameStartedEventConsumer;
 import org.moshe.arad.kafka.consumers.events.LoggedOutOpenByLeftEventConsumer;
 import org.moshe.arad.kafka.consumers.events.LoggedOutOpenByLeftFirstEventConsumer;
+import org.moshe.arad.kafka.consumers.events.LoggedOutSecondLeftFirstEventConsumer;
 import org.moshe.arad.kafka.consumers.events.NewGameRoomOpenedEventConsumer;
 import org.moshe.arad.kafka.consumers.events.UserAddedAsSecondPlayerEventConsumer;
 import org.moshe.arad.kafka.consumers.events.UserAddedAsWatcherEventConsumer;
@@ -176,6 +178,14 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 	@Autowired
 	private SimpleEventsProducer<UserPermissionsUpdatedEvent> userPermissionsUpdatedAfterloggedOutOpenByLeftFirstProducer;
 	
+	private LoggedOutSecondLeftFirstEventConsumer loggedOutSecondLeftFirstEventConsumer;
+	
+	@Autowired
+	private LoggedOutSecondLeftFirstEventConfig loggedOutSecondLeftFirstEventConfig;
+	
+	@Autowired
+	private SimpleEventsProducer<UserPermissionsUpdatedEvent> userPermissionsUpdatedAfterloggedOutSecondLeftFirstProducer;
+	
 	private ApplicationContext context;
 	
 	private ExecutorService executor = Executors.newFixedThreadPool(4);
@@ -207,6 +217,8 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 	private ConsumerToProducerQueue loggedOutWatcherLeftQueue;
 	
 	private ConsumerToProducerQueue loggedOutOpenByLeftFirstQueue;
+	
+	private ConsumerToProducerQueue loggedOutSecondLeftFirstQueue;
 	
 	private Logger logger = LoggerFactory.getLogger(AppInit.class);
 	
@@ -261,6 +273,7 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 		loggedOutWatcherLeftLastQueue = context.getBean(ConsumerToProducerQueue.class);
 		loggedOutWatcherLeftQueue = context.getBean(ConsumerToProducerQueue.class);
 		loggedOutOpenByLeftFirstQueue = context.getBean(ConsumerToProducerQueue.class);
+		loggedOutSecondLeftFirstQueue = context.getBean(ConsumerToProducerQueue.class);
 		
 		for(int i=0; i<NUM_CONSUMERS; i++){
 			fromMongoWithSavingEventsConsumer = context.getBean(FromMongoWithSavingEventsConsumer.class);
@@ -274,6 +287,7 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 			loggedOutWatcherLeftLastEventConsumer = context.getBean(LoggedOutWatcherLeftLastEventConsumer.class);
 			loggedOutWatcherLeftEventConsumer = context.getBean(LoggedOutWatcherLeftEventConsumer.class);
 			loggedOutOpenByLeftFirstEventConsumer = context.getBean(LoggedOutOpenByLeftFirstEventConsumer.class);
+			loggedOutSecondLeftFirstEventConsumer = context.getBean(LoggedOutSecondLeftFirstEventConsumer.class);
 			
 			logger.info("Initializing from mongo events store event consumer...");
 			initSingleConsumer(fromMongoWithSavingEventsConsumer, KafkaUtils.FROM_MONGO_EVENTS_WITH_SAVING_TOPIC, fromMongoWithSavingEventsConfig);
@@ -309,6 +323,9 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 			loggedOutOpenByLeftFirstEventConsumer.setConsumerToProducerQueue(loggedOutOpenByLeftFirstQueue);
 			initSingleConsumer(loggedOutOpenByLeftFirstEventConsumer, KafkaUtils.LOGGED_OUT_OPENBY_LEFT_FIRST_EVENT_TOPIC, loggedOutOpenByLeftFirstEventConfig);
 			
+			loggedOutSecondLeftFirstEventConsumer.setConsumerToProducerQueue(loggedOutSecondLeftFirstQueue);
+			initSingleConsumer(loggedOutSecondLeftFirstEventConsumer, KafkaUtils.LOGGED_OUT_SECOND_LEFT_FIRST_EVENT_TOPIC, loggedOutSecondLeftFirstEventConfig);
+			
 			executeRunnablesProducersAndConsumers(Arrays.asList(fromMongoWithSavingEventsConsumer, 
 					fromMongoWithoutSavingEventsConsumer,
 					newGameRoomOpenedEventConsumer,
@@ -319,7 +336,8 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 					loggedOutOpenByLeftEventConsumer,
 					loggedOutWatcherLeftLastEventConsumer,
 					loggedOutWatcherLeftEventConsumer,
-					loggedOutOpenByLeftFirstEventConsumer));
+					loggedOutOpenByLeftFirstEventConsumer,
+					loggedOutSecondLeftFirstEventConsumer));
 		}
 	}
 
@@ -362,7 +380,9 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 		initSingleProducer(userPermissionsUpdatedAfterloggedOutWatcherLeftProducer, 10, 0, TimeUnit.MILLISECONDS, KafkaUtils.USER_PERMISSIONS_UPDATED_LOGGED_OUT_WATCHER_LEFT_EVENT_TOPIC, loggedOutWatcherLeftQueue);
 		
 		initSingleProducer(userPermissionsUpdatedAfterloggedOutOpenByLeftFirstProducer, 10, 0, TimeUnit.MILLISECONDS, KafkaUtils.USER_PERMISSIONS_UPDATED_LOGGED_OUT_OPENBY_LEFT_FIRST_EVENT_TOPIC, loggedOutOpenByLeftFirstQueue);
-
+		
+		initSingleProducer(userPermissionsUpdatedAfterloggedOutSecondLeftFirstProducer, 10, 0, TimeUnit.MILLISECONDS, KafkaUtils.USER_PERMISSIONS_UPDATED_LOGGED_OUT_SECOND_LEFT_FIRST_EVENT_TOPIC, loggedOutSecondLeftFirstQueue);
+		
 		executeRunnablesProducersAndConsumers(Arrays.asList(newUserCreatedEventsProducer, newUserCreatedAckEventsProducer,
 				logInUserAckEventsProducer,loggedInEventsProducer,
 				userPermissionsUpdatedEventProducer,
@@ -374,7 +394,8 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 				userPermissionsUpdatedAfterloggedOutOpenByLeftProducer,
 				userPermissionsUpdatedAfterloggedOutWatcherLeftLastProducer,
 				userPermissionsUpdatedAfterloggedOutWatcherLeftProducer,
-				userPermissionsUpdatedAfterloggedOutOpenByLeftFirstProducer));
+				userPermissionsUpdatedAfterloggedOutOpenByLeftFirstProducer,
+				userPermissionsUpdatedAfterloggedOutSecondLeftFirstProducer));
 	}
 
 	@Override
