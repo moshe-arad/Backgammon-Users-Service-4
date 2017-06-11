@@ -66,4 +66,7 @@ public class KafkaUtils {
 	public static final String LOGGED_OUT_SECOND_LEFT_EVENT_GROUP = "LoggedOutSecondLeftEventGroup2";
 	public static final String LOGGED_OUT_SECOND_LEFT_EVENT_TOPIC = "Logged-Out-Second-Left-Event";
 	public static final String USER_PERMISSIONS_UPDATED_LOGGED_OUT_SECOND_LEFT_EVENT_TOPIC = "User-Permissions-Updated-Logged-Out-Second-Left-Event";
+	public static final String LOGGED_OUT_OPENBY_LEFT_LAST_EVENT_GROUP = "LoggedOutOpenbyLeftLastEventGroup2";
+	public static final String LOGGED_OUT_OPENBY_LEFT_LAST_EVENT_TOPIC = "Logged-Out-Openby-Left-Last-Event";
+	public static final String USER_PERMISSIONS_UPDATED_LOGGED_OUT_OPENBY_LEFT_LAST_EVENT_TOPIC = "User-Permissions-Updated-Logged-Out-Openby-Left-Last-Event";
 }
