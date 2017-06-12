@@ -13,8 +13,8 @@ import org.moshe.arad.kafka.events.UserAddedAsWatcherEvent;
 import org.moshe.arad.kafka.events.LoggedOutOpenByLeftBeforeGameStartedEvent;
 import org.moshe.arad.kafka.events.LoggedOutOpenByLeftEvent;
 import org.moshe.arad.kafka.events.LoggedOutOpenByLeftFirstEvent;
-import org.moshe.arad.kafka.events.LoggedOutSecondLeftEvent;
 import org.moshe.arad.kafka.events.LoggedOutSecondLeftFirstEvent;
+import org.moshe.arad.kafka.events.LoggedOutSecondLeftLastEvent;
 import org.moshe.arad.kafka.events.LoggedOutUserLeftLobbyEvent;
 import org.moshe.arad.kafka.events.UserPermissionsUpdatedEvent;
 import org.moshe.arad.repository.UsersRepository;
@@ -29,7 +29,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Component
 @Scope("prototype")
-public class LoggedOutSecondLeftEventConsumer extends SimpleEventsConsumer {
+public class LoggedOutSecondLeftLastEventConsumer extends SimpleEventsConsumer {
 
 	@Autowired
 	private UsersRepository usersRepository;
@@ -39,17 +39,17 @@ public class LoggedOutSecondLeftEventConsumer extends SimpleEventsConsumer {
 	
 	private ConsumerToProducerQueue consumerToProducerQueue;
 	
-	Logger logger = LoggerFactory.getLogger(LoggedOutSecondLeftEventConsumer.class);
+	Logger logger = LoggerFactory.getLogger(LoggedOutSecondLeftLastEventConsumer.class);
 	
-	public LoggedOutSecondLeftEventConsumer() {
+	public LoggedOutSecondLeftLastEventConsumer() {
 	}
 	
 	@Override
 	public void consumerOperations(ConsumerRecord<String, String> record) {
-		LoggedOutSecondLeftEvent loggedOutSecondLeftEvent = convertJsonBlobIntoEvent(record.value());
+		LoggedOutSecondLeftLastEvent loggedOutSecondLeftLastEvent = convertJsonBlobIntoEvent(record.value());
 		
 		try{			
-			String loggedOutUserName = loggedOutSecondLeftEvent.getSecond();
+			String loggedOutUserName = loggedOutSecondLeftLastEvent.getSecond();
 			BackgammonUser backgammonUser = context.getBean(BackgammonUser.class);
 			backgammonUser.setUserName(loggedOutUserName);
 			backgammonUser = usersRepository.isUserExistsAndReturn(backgammonUser);
@@ -61,7 +61,7 @@ public class LoggedOutSecondLeftEventConsumer extends SimpleEventsConsumer {
 				backgammonUser.setUser_permissions(Arrays.asList());
 				userPermissionsUpdatedEvent.setBackgammonUser(backgammonUser);
 				
-				userPermissionsUpdatedEvent.setUuid(loggedOutSecondLeftEvent.getUuid());
+				userPermissionsUpdatedEvent.setUuid(loggedOutSecondLeftLastEvent.getUuid());
 				userPermissionsUpdatedEvent.setArrived(new Date());
 				userPermissionsUpdatedEvent.setClazz("UserPermissionsUpdatedEvent");
 				
@@ -77,10 +77,10 @@ public class LoggedOutSecondLeftEventConsumer extends SimpleEventsConsumer {
 		}
 	}
 	
-	private LoggedOutSecondLeftEvent convertJsonBlobIntoEvent(String JsonBlob){
+	private LoggedOutSecondLeftLastEvent convertJsonBlobIntoEvent(String JsonBlob){
 		ObjectMapper objectMapper = new ObjectMapper();
 		try {
-			return objectMapper.readValue(JsonBlob, LoggedOutSecondLeftEvent.class);
+			return objectMapper.readValue(JsonBlob, LoggedOutSecondLeftLastEvent.class);
 		} catch (IOException e) {
 			logger.error("Falied to convert Json blob into Event...");
 			logger.error(e.getMessage());
