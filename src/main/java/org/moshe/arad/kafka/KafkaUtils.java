@@ -75,4 +75,7 @@ public class KafkaUtils {
 	public static final String OPENBY_LEFT_BEFORE_GAME_STARTED_EVENT_TOPIC = "Openby-Left-Before-Game-Started-Event";
 	public static final String USER_PERMISSIONS_UPDATED_OPENBY_LEFT_BEFORE_GAME_STARTED_EVENT_TOPIC = "User-Permissions-Updated-Openby-Left-Before-Game-Started-Event";
 	public static final String OPENBY_LEFT_BEFORE_GAME_STARTED_EVENT_GROUP = "OpenbyLeftBeforeGameStartedEventGroup2";
+	public static final String OPENBY_LEFT_EVENT_GROUP = "OpenbyLeftEventGroup2";
+	public static final String OPENBY_LEFT_EVENT_TOPIC = "Openby-Left-Event";
+	public static final String USER_PERMISSIONS_UPDATED_OPENBY_LEFT_EVENT_TOPIC = "User-Permissions-Updated-Openby-Left-Event";
 }
