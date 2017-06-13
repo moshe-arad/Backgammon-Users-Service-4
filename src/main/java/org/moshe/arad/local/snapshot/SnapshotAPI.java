@@ -121,7 +121,7 @@ public class SnapshotAPI implements ApplicationContextAware {
 		synchronized (current) {
 			try {				
 				lockers.put(uuid, current);
-				current.wait();
+				current.wait(5000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
