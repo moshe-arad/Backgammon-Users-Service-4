@@ -81,4 +81,7 @@ public class KafkaUtils {
 	public static final String WATCHER_LEFT_LAST_EVENT_GROUP = "WatcherLeftLastEventGroup2";
 	public static final String WATCHER_LEFT_LAST_EVENT_TOPIC = "Watcher-Left-Last-Event";
 	public static final String USER_PERMISSIONS_UPDATED_WATCHER_LEFT_LAST_EVENT_TOPIC = "User-Permissions-Updated-Watcher-Left-Last-Event";
+	public static final String WATCHER_LEFT_EVENT_GROUP = "WatcherLeftEventGroup2";
+	public static final String WATCHER_LEFT_EVENT_TOPIC = "Watcher-Left-Event";
+	public static final String USER_PERMISSIONS_UPDATED_WATCHER_LEFT_EVENT_TOPIC = "User-Permissions-Updated-Watcher-Left-Event";
 }
