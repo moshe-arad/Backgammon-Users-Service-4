@@ -32,6 +32,7 @@ import org.moshe.arad.kafka.consumers.config.OpenByLeftFirstEventConfig;
 import org.moshe.arad.kafka.consumers.config.OpenByLeftLastEventConfig;
 import org.moshe.arad.kafka.consumers.config.SecondLeftEventConfig;
 import org.moshe.arad.kafka.consumers.config.SecondLeftFirstEventConfig;
+import org.moshe.arad.kafka.consumers.config.SecondLeftLastEventConfig;
 import org.moshe.arad.kafka.consumers.config.SimpleConsumerConfig;
 import org.moshe.arad.kafka.consumers.config.UserAddedAsSecondPlayerEventConfig;
 import org.moshe.arad.kafka.consumers.config.UserAddedAsWatcherEventConfig;
@@ -56,6 +57,7 @@ import org.moshe.arad.kafka.consumers.events.OpenByLeftFirstEventConsumer;
 import org.moshe.arad.kafka.consumers.events.OpenByLeftLastEventConsumer;
 import org.moshe.arad.kafka.consumers.events.SecondLeftEventConsumer;
 import org.moshe.arad.kafka.consumers.events.SecondLeftFirstEventConsumer;
+import org.moshe.arad.kafka.consumers.events.SecondLeftLastEventConsumer;
 import org.moshe.arad.kafka.consumers.events.UserAddedAsSecondPlayerEventConsumer;
 import org.moshe.arad.kafka.consumers.events.UserAddedAsWatcherEventConsumer;
 import org.moshe.arad.kafka.consumers.events.WatcherLeftEventConsumer;
@@ -296,6 +298,14 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 	@Autowired
 	private SimpleEventsProducer<UserPermissionsUpdatedEvent> userPermissionsUpdatedAfterOpenByLeftLastProducer;
 
+	private SecondLeftLastEventConsumer secondLeftLastEventConsumer;
+	
+	@Autowired
+	private SecondLeftLastEventConfig secondLeftLastEventConfig;
+	
+	@Autowired
+	private SimpleEventsProducer<UserPermissionsUpdatedEvent> userPermissionsUpdatedAfterSecondLeftLastProducer;
+
 	private ApplicationContext context;
 	
 	private ExecutorService executor = Executors.newFixedThreadPool(4);
@@ -347,6 +357,8 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 	private ConsumerToProducerQueue secondLeftQueue;
 	
 	private ConsumerToProducerQueue openByLeftLastQueue;
+	
+	private ConsumerToProducerQueue secondLeftLastQueue;
 	
 	private Logger logger = LoggerFactory.getLogger(AppInit.class);
 	
@@ -417,6 +429,7 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 		secondLeftFirstQueue = context.getBean(ConsumerToProducerQueue.class);
 		secondLeftQueue = context.getBean(ConsumerToProducerQueue.class);
 		openByLeftLastQueue = context.getBean(ConsumerToProducerQueue.class);
+		secondLeftLastQueue = context.getBean(ConsumerToProducerQueue.class);
 		
 		for(int i=0; i<NUM_CONSUMERS; i++){
 			fromMongoWithSavingEventsConsumer = context.getBean(FromMongoWithSavingEventsConsumer.class);
@@ -442,6 +455,7 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 			secondLeftFirstEventConsumer = context.getBean(SecondLeftFirstEventConsumer.class);
 			secondLeftEventConsumer = context.getBean(SecondLeftEventConsumer.class);
 			openByLeftLastEventConsumer = context.getBean(OpenByLeftLastEventConsumer.class);
+			secondLeftLastEventConsumer = context.getBean(SecondLeftLastEventConsumer.class);
 			
 			logger.info("Initializing from mongo events store event consumer...");
 			initSingleConsumer(fromMongoWithSavingEventsConsumer, KafkaUtils.FROM_MONGO_EVENTS_WITH_SAVING_TOPIC, fromMongoWithSavingEventsConfig);
@@ -513,6 +527,9 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 			openByLeftLastEventConsumer.setConsumerToProducerQueue(openByLeftLastQueue);
 			initSingleConsumer(openByLeftLastEventConsumer, KafkaUtils.OPENBY_LEFT_LAST_EVENT_TOPIC, openByLeftLastEventConfig);
 			
+			secondLeftLastEventConsumer.setConsumerToProducerQueue(secondLeftLastQueue);
+			initSingleConsumer(secondLeftLastEventConsumer, KafkaUtils.SECOND_LEFT_LAST_EVENT_TOPIC, secondLeftLastEventConfig);
+			
 			executeRunnablesProducersAndConsumers(Arrays.asList(fromMongoWithSavingEventsConsumer, 
 					fromMongoWithoutSavingEventsConsumer,
 					newGameRoomOpenedEventConsumer,
@@ -535,7 +552,8 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 					openByLeftFirstEventConsumer,
 					secondLeftFirstEventConsumer,
 					secondLeftEventConsumer,
-					openByLeftLastEventConsumer));
+					openByLeftLastEventConsumer,
+					secondLeftLastEventConsumer));
 		}
 	}
 
@@ -603,6 +621,8 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 		
 		initSingleProducer(userPermissionsUpdatedAfterOpenByLeftLastProducer, 10, 0, TimeUnit.MILLISECONDS, KafkaUtils.USER_PERMISSIONS_UPDATED_OPENBY_LEFT_LAST_EVENT_TOPIC, openByLeftLastQueue);
 		
+		initSingleProducer(userPermissionsUpdatedAfterSecondLeftLastProducer, 10, 0, TimeUnit.MILLISECONDS, KafkaUtils.USER_PERMISSIONS_UPDATED_SECOND_LEFT_LAST_EVENT_TOPIC, secondLeftLastQueue);
+		
 		executeRunnablesProducersAndConsumers(Arrays.asList(newUserCreatedEventsProducer, newUserCreatedAckEventsProducer,
 				logInUserAckEventsProducer,loggedInEventsProducer,
 				userPermissionsUpdatedEventProducer,
@@ -626,7 +646,8 @@ public class AppInit implements ApplicationContextAware, IAppInitializer {
 				userPermissionsUpdatedAfterOpenByLeftFirstEventProducer,
 				userPermissionsUpdatedAfterSecondLeftFirstEventProducer,
 				userPermissionsUpdatedAfterSecondLeftEventProducer,
-				userPermissionsUpdatedAfterOpenByLeftLastProducer));
+				userPermissionsUpdatedAfterOpenByLeftLastProducer,
+				userPermissionsUpdatedAfterSecondLeftLastProducer));
 	}
 
 	@Override

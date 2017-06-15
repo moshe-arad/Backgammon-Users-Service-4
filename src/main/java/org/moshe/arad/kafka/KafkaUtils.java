@@ -96,4 +96,7 @@ public class KafkaUtils {
 	public static final String OPENBY_LEFT_LAST_EVENT_GROUP = "OpenbyLeftLastEventGroup2";
 	public static final String OPENBY_LEFT_LAST_EVENT_TOPIC = "Openby-Left-Last-Event";
 	public static final String USER_PERMISSIONS_UPDATED_OPENBY_LEFT_LAST_EVENT_TOPIC = "User-Permissions-Updated-Openby-Left-Last-Event";
+	public static final String SECOND_LEFT_LAST_EVENT_GROUP = "SecondLeftLastEventGroup2";
+	public static final String SECOND_LEFT_LAST_EVENT_TOPIC = "Second-Left-Last-Event";
+	public static final String USER_PERMISSIONS_UPDATED_SECOND_LEFT_LAST_EVENT_TOPIC = "User-Permissions-Updated-Second-Left-Last-Event";
 }
