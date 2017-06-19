@@ -3,6 +3,7 @@ package org.moshe.arad.local.snapshot;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.Map;
@@ -17,8 +18,13 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.moshe.arad.entities.BackgammonUser;
 import org.moshe.arad.kafka.KafkaUtils;
 import org.moshe.arad.kafka.events.BackgammonEvent;
+import org.moshe.arad.kafka.events.ExistingUserJoinedLobbyEvent;
+import org.moshe.arad.kafka.events.LoggedInEvent;
+import org.moshe.arad.kafka.events.LoggedOutUserLeftLobbyEvent;
+import org.moshe.arad.kafka.events.LogoutUserEvent;
 import org.moshe.arad.kafka.events.NewUserCreatedEvent;
 import org.moshe.arad.kafka.events.NewUserJoinedLobbyEvent;
+import org.moshe.arad.kafka.events.UserPermissionsUpdatedEvent;
 import org.moshe.arad.kafka.producers.commands.ISimpleCommandProducer;
 import org.moshe.arad.kafka.producers.commands.PullEventsWithoutSavingCommandsProducer;
 import org.slf4j.Logger;
@@ -58,9 +64,8 @@ public class SnapshotAPI implements ApplicationContextAware {
 	private ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
 	
 	public static final String LAST_UPDATED = "lastUpdateSnapshotDate";
-	public static final String LOBBY = "Lobby";
-	public static final String GAME = "Game";
-	public static final String LOGGED_OUT = "LoggedOut";
+	
+	public static final String USERS = "Users";
 	
 	public boolean isLastUpdateDateExists(){
 		try{
@@ -91,27 +96,20 @@ public class SnapshotAPI implements ApplicationContextAware {
 		readWriteLock.writeLock().unlock();
 	}
 	
-	public Map<String,Set<String>> readLatestSnapshot(){
+	public Map<String,Map<Object, Object>> readLatestSnapshot(){
 		if(!isLastUpdateDateExists()) return null;
 		else{
 			readWriteLock.readLock().lock();
-			
-			Set<String> usersInLobby = redisTemplate.opsForSet().members(LOBBY);
-			Set<String> usersInGame = redisTemplate.opsForSet().members(GAME);
-			Set<String> usersLoggedOut = redisTemplate.opsForSet().members(LOGGED_OUT);
-			
+			Map<Object, Object> users = redisTemplate.opsForHash().entries(USERS);
 			readWriteLock.readLock().unlock();
 			
-			Map<String,Set<String>> result = new HashMap<String, Set<String>>(10000);
-			
-			result.put(LOBBY, usersInLobby);
-			result.put(GAME, usersInGame);
-			result.put(LOGGED_OUT, usersLoggedOut);
+			Map<String,Map<Object, Object>> result = new HashMap<String, Map<Object, Object>>(10000);
+			if(users != null) result.put(USERS, users);
 			return result;
 		}
 	}	
 	
-	public Map<String,Set<String>> doEventsFoldingAndGetInstanceWithoutSaving(){		
+	public Map<String,Map<Object, Object>> doEventsFoldingAndGetInstanceWithoutSaving(){		
 		logger.info("Preparing command producer...");
 		PullEventsWithoutSavingCommandsProducer pullEventsWithoutSavingCommandsProducer = context.getBean(PullEventsWithoutSavingCommandsProducer.class);
 		UUID uuid = initSingleProducer(pullEventsWithoutSavingCommandsProducer, KafkaUtils.PULL_EVENTS_WITHOUT_SAVING_COMMAND_TOPIC);
@@ -129,7 +127,8 @@ public class SnapshotAPI implements ApplicationContextAware {
 			}
 		}
 		
-		return getInstanceFromEventsFold(eventsfromMongo.get(uuid));
+		Map<String,Map<Object, Object>> result = getInstanceFromEventsFold(eventsfromMongo.get(uuid));
+		return result;
 	}
 	
 	private UUID initSingleProducer(ISimpleCommandProducer producer, String topic) {
@@ -139,61 +138,45 @@ public class SnapshotAPI implements ApplicationContextAware {
 		return producer.getUuid();
 	}
 	
-	public void updateLatestSnapshot(Map<String,Set<String>> snapshot){
+	public void updateLatestSnapshot(Map<String,Map<Object, Object>> snapshot){
 		
 		readWriteLock.writeLock().lock();
 		
-		redisTemplate.expire(LOBBY, 1, TimeUnit.NANOSECONDS);
-		redisTemplate.expire(GAME, 1, TimeUnit.NANOSECONDS);
 		redisTemplate.expire(LAST_UPDATED, 1, TimeUnit.NANOSECONDS);
+		redisTemplate.expire(USERS, 1, TimeUnit.NANOSECONDS);
 		
-		while(redisTemplate.hasKey(LOBBY) || redisTemplate.hasKey(GAME) || redisTemplate.hasKey(LOGGED_OUT)){
+		while(redisTemplate.hasKey(USERS) || redisTemplate.hasKey(LAST_UPDATED)){
 			try {
-				Thread.sleep(1000);
+				Thread.sleep(100);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 		}
 		
-		String[] lobbyUsers = new String[snapshot.get(LOBBY).size()];
-		if(lobbyUsers.length > 0) {
-			snapshot.get(LOBBY).toArray(lobbyUsers);
-			redisTemplate.opsForSet().add(LOBBY, lobbyUsers);
-		}
-				
-		String[] gameUsers = new String[snapshot.get(GAME).size()];
-		if(gameUsers.length > 0) {
-			snapshot.get(GAME).toArray(gameUsers);
-			redisTemplate.opsForSet().add(GAME, gameUsers);
-		}
-					
-		String[] loggedOutUsers = new String[snapshot.get(LOGGED_OUT).size()];
-		if(loggedOutUsers.length > 0) {
-			snapshot.get(LOGGED_OUT).toArray(loggedOutUsers);
-			redisTemplate.opsForSet().add(LOGGED_OUT, loggedOutUsers);
-		}
 		
+		saveDataFromSnapshot(snapshot, USERS);
 		readWriteLock.writeLock().unlock();				
+	}
+
+	private void saveDataFromSnapshot(Map<String,Map<Object, Object>> snapshot, String key) {
+		redisTemplate.opsForHash().putAll(key, snapshot.get(key));
 	}
 	
 	/**
 	 * calculate instance after events fold, will return this instance without saving it into Redis.
 	 * @return 
 	 */
-	public Map<String,Set<String>> getInstanceFromEventsFold(LinkedList<BackgammonEvent> fromMongoEventsStoreEventList){
+	public Map<String,Map<Object, Object>> getInstanceFromEventsFold(LinkedList<BackgammonEvent> fromMongoEventsStoreEventList){
 		boolean isLatestSnapshotExists = this.readLatestSnapshot() == null ? false : true;
-		Map<String,Set<String>> currentSnapshot;
+		Map<String,Map<Object, Object>> currentSnapshot;
 		
 		if(isLatestSnapshotExists) currentSnapshot = this.readLatestSnapshot();
 		else {
 			currentSnapshot = new HashMap<>(10000);
-			currentSnapshot.put(LOBBY, new HashSet<>());
-			currentSnapshot.put(GAME, new HashSet<>());
-			currentSnapshot.put(LOGGED_OUT, new HashSet<>());
+			currentSnapshot.put(USERS, new HashMap<>());
 		}
 
 		ListIterator<BackgammonEvent> it = fromMongoEventsStoreEventList.listIterator();
-		Map<String, BackgammonUser> aboutToEnterLobby = new HashMap<>(10000);
 		
 		logger.info("Starting to fold events into current state...");
 		
@@ -203,14 +186,22 @@ public class SnapshotAPI implements ApplicationContextAware {
 			if(eventToFold.getClazz().equals("NewUserCreatedEvent")){
 				NewUserCreatedEvent newUserCreatedEvent = (NewUserCreatedEvent) eventToFold;
 				BackgammonUser backgammonUser  = newUserCreatedEvent.getBackgammonUser();
-				aboutToEnterLobby.put(backgammonUser.getUserName(), backgammonUser);
+				
+				ObjectMapper objectMapper = new ObjectMapper();
+				String backgammonUserJson = null;
+				try {
+					backgammonUserJson = objectMapper.writeValueAsString(backgammonUser);
+				} catch (JsonProcessingException e) {
+					logger.error("Failed convert backgammon user to json...");
+					logger.error(e.getMessage());
+					e.printStackTrace();
+				}				
+				currentSnapshot.get(USERS).put(backgammonUser.getUserName(), backgammonUserJson);
 			}
 			else if(eventToFold.getClazz().equals("NewUserJoinedLobbyEvent")){
 				NewUserJoinedLobbyEvent newUserJoinedLobbyEvent = (NewUserJoinedLobbyEvent) eventToFold;
 				BackgammonUser backgammonUser = newUserJoinedLobbyEvent.getBackgammonUser();
-				if(aboutToEnterLobby.containsKey(backgammonUser.getUserName())){
-					aboutToEnterLobby.remove(backgammonUser.getUserName());
-				}
+				
 				ObjectMapper objectMapper = new ObjectMapper();
 				String backgammonUserJson = null;
 				try {
@@ -220,8 +211,90 @@ public class SnapshotAPI implements ApplicationContextAware {
 					logger.error(e.getMessage());
 					e.printStackTrace();
 				}
-				currentSnapshot.get(LOBBY).add(backgammonUserJson);
+				
+				currentSnapshot.get(USERS).put(backgammonUser.getUserName(), backgammonUserJson);
 			}
+			else if(eventToFold.getClazz().equals("LoggedInEvent")){
+				LoggedInEvent loggedInEvent = (LoggedInEvent) eventToFold;
+				BackgammonUser backgammonUser = loggedInEvent.getBackgammonUser();
+				
+				ObjectMapper objectMapper = new ObjectMapper();
+				String backgammonUserJson = null;
+				try {
+					backgammonUserJson = objectMapper.writeValueAsString(backgammonUser);
+				} catch (JsonProcessingException e) {
+					logger.error("Failed convert backgammon user to json...");
+					logger.error(e.getMessage());
+					e.printStackTrace();
+				}
+	
+				currentSnapshot.get(USERS).put(backgammonUser.getUserName(), backgammonUserJson);
+			}
+			else if(eventToFold.getClazz().equals("ExistingUserJoinedLobbyEvent")){
+				ExistingUserJoinedLobbyEvent existingUserJoinedLobbyEvent = (ExistingUserJoinedLobbyEvent) eventToFold;
+				BackgammonUser backgammonUser = existingUserJoinedLobbyEvent.getBackgammonUser();
+				
+				ObjectMapper objectMapper = new ObjectMapper();
+				String backgammonUserJson = null;
+				try {
+					backgammonUserJson = objectMapper.writeValueAsString(backgammonUser);
+				} catch (JsonProcessingException e) {
+					logger.error("Failed convert backgammon user to json...");
+					logger.error(e.getMessage());
+					e.printStackTrace();
+				}
+			
+				currentSnapshot.get(USERS).put(backgammonUser.getUserName(), backgammonUserJson);
+			}
+			else if(eventToFold.getClazz().equals("LoggedOutEvent")){
+				LogoutUserEvent logoutUserEvent = (LogoutUserEvent) eventToFold;
+				BackgammonUser backgammonUser = logoutUserEvent.getBackgammonUser();
+				
+				ObjectMapper objectMapper = new ObjectMapper();
+				String backgammonUserJson = null;
+				try {
+					backgammonUserJson = objectMapper.writeValueAsString(backgammonUser);
+				} catch (JsonProcessingException e) {
+					logger.error("Failed convert backgammon user to json...");
+					logger.error(e.getMessage());
+					e.printStackTrace();
+				}
+		
+				currentSnapshot.get(USERS).put(backgammonUser.getUserName(), backgammonUserJson);
+			}
+			else if(eventToFold.getClazz().equals("UserPermissionsUpdatedEvent")){
+				UserPermissionsUpdatedEvent userPermissionsUpdatedEvent = (UserPermissionsUpdatedEvent) eventToFold;
+				BackgammonUser backgammonUser = userPermissionsUpdatedEvent.getBackgammonUser();
+				
+				ObjectMapper objectMapper = new ObjectMapper();
+				String backgammonUserJson = null;
+				try {
+					backgammonUserJson = objectMapper.writeValueAsString(backgammonUser);
+				} catch (JsonProcessingException e) {
+					logger.error("Failed convert backgammon user to json...");
+					logger.error(e.getMessage());
+					e.printStackTrace();
+				}
+		
+				currentSnapshot.get(USERS).put(backgammonUser.getUserName(), backgammonUserJson);
+			}
+			else if(eventToFold.getClazz().equals("LoggedOutUserLeftLobbyEvent")){
+				LoggedOutUserLeftLobbyEvent loggedOutUserLeftLobbyEvent = (LoggedOutUserLeftLobbyEvent) eventToFold;
+				BackgammonUser backgammonUser = loggedOutUserLeftLobbyEvent.getBackgammonUser();
+				
+				ObjectMapper objectMapper = new ObjectMapper();
+				String backgammonUserJson = null;
+				try {
+					backgammonUserJson = objectMapper.writeValueAsString(backgammonUser);
+				} catch (JsonProcessingException e) {
+					logger.error("Failed convert backgammon user to json...");
+					logger.error(e.getMessage());
+					e.printStackTrace();
+				}
+		
+				currentSnapshot.get(USERS).put(backgammonUser.getUserName(), backgammonUserJson);
+			}
+			
 			logger.info("Event to folded successfuly = " + eventToFold);
 			//TODO write code about logging out and in game code
 		}

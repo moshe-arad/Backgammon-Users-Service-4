@@ -8,5 +8,5 @@ public class EndReadEventsFromMongoEvent extends BackgammonEvent {
 	@Override
 	public String toString() {
 		return "EndReadEventsFromMongoEvent []";
-	}
+	}	
 }

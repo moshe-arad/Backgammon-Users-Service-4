@@ -61,5 +61,48 @@ public abstract class BackgammonEvent {
 
 	public void setClazz(String clazz) {
 		this.clazz = clazz;
-	}		
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((arrived == null) ? 0 : arrived.hashCode());
+		result = prime * result + ((clazz == null) ? 0 : clazz.hashCode());
+		result = prime * result + eventId;
+		result = prime * result + serviceId;
+		result = prime * result + ((uuid == null) ? 0 : uuid.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		BackgammonEvent other = (BackgammonEvent) obj;
+		if (arrived == null) {
+			if (other.arrived != null)
+				return false;
+		} else if (!arrived.equals(other.arrived))
+			return false;
+		if (clazz == null) {
+			if (other.clazz != null)
+				return false;
+		} else if (!clazz.equals(other.clazz))
+			return false;
+		if (eventId != other.eventId)
+			return false;
+		if (serviceId != other.serviceId)
+			return false;
+		if (uuid == null) {
+			if (other.uuid != null)
+				return false;
+		} else if (!uuid.equals(other.uuid))
+			return false;
+		return true;
+	}
 }

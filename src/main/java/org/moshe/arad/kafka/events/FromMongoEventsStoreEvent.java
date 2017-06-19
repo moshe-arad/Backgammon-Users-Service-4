@@ -49,4 +49,35 @@ public class FromMongoEventsStoreEvent extends BackgammonEvent{
 	public void setEndReadEvents(boolean isEndReadEvents) {
 		this.isEndReadEvents = isEndReadEvents;
 	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + ((backgammonEvent == null) ? 0 : backgammonEvent.hashCode());
+		result = prime * result + (isEndReadEvents ? 1231 : 1237);
+		result = prime * result + (isStartReadEvents ? 1231 : 1237);
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (!super.equals(obj))
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		FromMongoEventsStoreEvent other = (FromMongoEventsStoreEvent) obj;
+		if (backgammonEvent == null) {
+			if (other.backgammonEvent != null)
+				return false;
+		} else if (!backgammonEvent.equals(other.backgammonEvent))
+			return false;
+		if (isEndReadEvents != other.isEndReadEvents)
+			return false;
+		if (isStartReadEvents != other.isStartReadEvents)
+			return false;
+		return true;
+	}
 }
