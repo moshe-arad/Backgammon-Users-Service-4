@@ -1,5 +1,6 @@
 package org.moshe.arad;
 
+import org.moshe.arad.initializer.AppInit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -18,11 +19,10 @@ import org.springframework.web.context.annotation.RequestScope;
 
 @SpringBootApplication
 @RestController
-public class Application implements ApplicationRunner, ApplicationContextAware {
+public class Application implements ApplicationRunner {
 
 	@Autowired
-	private Users users;
-	private ApplicationContext context;
+	private AppInit appInit;
 	private Logger logger = LoggerFactory.getLogger(Application.class);
 	
 	
@@ -33,27 +33,27 @@ public class Application implements ApplicationRunner, ApplicationContextAware {
 
 	@Override
 	public void run(ApplicationArguments arg0) throws Exception {
-		users.setContext(context);
-		users.acceptNewUsers();
+		appInit.startEngine();
 	}
 	
 	@RequestMapping("/shutdown")
 	public ResponseEntity<String> shutdown(){
 		try{
-			logger.info("about to do shutdown.");
-			users.shutdown();
-			logger.info("shutdown compeleted.");
+			return this.executeShutdown();
+		}
+		finally{
+			System.exit(1);
+		}
+	}
+	
+	private ResponseEntity<String> executeShutdown(){
+		try{			
+			appInit.engineShutdown();			
 			return new ResponseEntity<String>("", HttpStatus.OK);
 		}
 		catch(Exception ex){
 			logger.info("Failed to shutdown users service.");
 			return new ResponseEntity<String>("", HttpStatus.INTERNAL_SERVER_ERROR);
 		}
-		
-	}
-
-	@Override
-	public void setApplicationContext(ApplicationContext context) throws BeansException {
-		this.context = context;
 	}
 }
