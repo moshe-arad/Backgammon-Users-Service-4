@@ -121,8 +121,7 @@ public class FromMongoWithSavingEventsConsumer extends SimpleEventsConsumer {
 				
 				if(sortedEvents.size() > 0){
 					Date latestEventDate = sortedEvents.getLast().getArrived();
-					snapshotAPI.updateLatestSnapshot(snapshotAPI.getInstanceFromEventsFold(sortedEvents));
-					snapshotAPI.saveLatestSnapshotDate(latestEventDate);
+					snapshotAPI.updateLatestSnapshot(snapshotAPI.getInstanceFromEventsFold(sortedEvents), latestEventDate);
 					logger.info("SnapshotAPI updated...");
 				}				
 			

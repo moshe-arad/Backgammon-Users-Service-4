@@ -91,6 +91,7 @@ public class SnapshotAPI implements ApplicationContextAware {
 	}
 
 	public void saveLatestSnapshotDate(Date date){
+		if(date == null) return;
 		readWriteLock.writeLock().lock();
 		redisTemplate.opsForValue().set(LAST_UPDATED, Long.toString(date.getTime()));
 		readWriteLock.writeLock().unlock();
@@ -104,7 +105,8 @@ public class SnapshotAPI implements ApplicationContextAware {
 			readWriteLock.readLock().unlock();
 			
 			Map<String,Map<Object, Object>> result = new HashMap<String, Map<Object, Object>>(10000);
-			if(users != null) result.put(USERS, users);
+			if(users.isEmpty()) throw new RuntimeException("Redis has last update date but hasn't got any users in DB...");
+			result.put(USERS, users);
 			return result;
 		}
 	}	
@@ -138,7 +140,8 @@ public class SnapshotAPI implements ApplicationContextAware {
 		return producer.getUuid();
 	}
 	
-	public void updateLatestSnapshot(Map<String,Map<Object, Object>> snapshot){
+	//doesn't save latest date
+	public void updateLatestSnapshot(Map<String,Map<Object, Object>> snapshot, Date latestEventDate){
 		
 		readWriteLock.writeLock().lock();
 		
@@ -147,7 +150,7 @@ public class SnapshotAPI implements ApplicationContextAware {
 		
 		while(redisTemplate.hasKey(USERS) || redisTemplate.hasKey(LAST_UPDATED)){
 			try {
-				Thread.sleep(100);
+				Thread.sleep(10);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -155,6 +158,7 @@ public class SnapshotAPI implements ApplicationContextAware {
 		
 		
 		saveDataFromSnapshot(snapshot, USERS);
+		saveLatestSnapshotDate(latestEventDate);
 		readWriteLock.writeLock().unlock();				
 	}
 
