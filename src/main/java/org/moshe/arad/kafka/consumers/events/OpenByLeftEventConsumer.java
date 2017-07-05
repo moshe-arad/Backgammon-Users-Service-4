@@ -6,6 +6,7 @@ import java.util.Date;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.moshe.arad.entities.BackgammonUser;
+import org.moshe.arad.entities.Status;
 import org.moshe.arad.kafka.ConsumerToProducerQueue;
 import org.moshe.arad.kafka.events.NewGameRoomOpenedEvent;
 import org.moshe.arad.kafka.events.OpenByLeftEvent;
@@ -57,6 +58,7 @@ public class OpenByLeftEventConsumer extends SimpleEventsConsumer {
 				logger.info("Will set new permissions to user...");
 				UserPermissionsUpdatedEvent userPermissionsUpdatedEvent = context.getBean(UserPermissionsUpdatedEvent.class);
 				backgammonUser.setUser_permissions(Arrays.asList("user"));
+				backgammonUser.setStatus(Status.InLobby);
 				userPermissionsUpdatedEvent.setBackgammonUser(backgammonUser);
 				
 				userPermissionsUpdatedEvent.setUuid(openByLeftEvent.getUuid());

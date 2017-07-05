@@ -173,14 +173,16 @@ public class SnapshotAPI implements ApplicationContextAware {
 	public Map<String,Map<Object, Object>> getInstanceFromEventsFold(LinkedList<BackgammonEvent> fromMongoEventsStoreEventList){
 		boolean isLatestSnapshotExists = this.readLatestSnapshot() == null ? false : true;
 		Map<String,Map<Object, Object>> currentSnapshot;
+		ListIterator<BackgammonEvent> it;
 		
 		if(isLatestSnapshotExists) currentSnapshot = this.readLatestSnapshot();
 		else {
 			currentSnapshot = new HashMap<>(10000);
 			currentSnapshot.put(USERS, new HashMap<>());
 		}
-
-		ListIterator<BackgammonEvent> it = fromMongoEventsStoreEventList.listIterator();
+		
+		if(fromMongoEventsStoreEventList != null) it = fromMongoEventsStoreEventList.listIterator();
+		else throw new RuntimeException("List event from mongo is null...");
 		
 		logger.info("Starting to fold events into current state...");
 		

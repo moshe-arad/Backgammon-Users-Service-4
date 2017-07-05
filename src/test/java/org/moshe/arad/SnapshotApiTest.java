@@ -3,6 +3,7 @@ package org.moshe.arad;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -10,13 +11,17 @@ import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.moshe.arad.entities.BackgammonUser;
+import org.moshe.arad.entities.Status;
+import org.moshe.arad.kafka.events.NewUserCreatedEvent;
 import org.moshe.arad.local.snapshot.SnapshotAPI;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationContext;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@RunWith(SpringRunner.class)
+@RunWith(SpringJUnit4ClassRunner.class)
 @SpringBootTest
 public class SnapshotApiTest {
 
@@ -25,6 +30,9 @@ public class SnapshotApiTest {
 	
 	@Autowired
 	private SnapshotAPI snapshotApi;
+	
+	@Autowired
+	private ApplicationContext context;
 	
 	@Before
 	public void init(){
@@ -153,4 +161,26 @@ public class SnapshotApiTest {
 		
 		assertEquals("updateLatestSnapshotTest failed...", snapshot, actual);
 	}
+	
+	@Test(expected=RuntimeException.class)
+	public void getInstanceFromEventsFoldEventsListFromMongoIsNullTest(){
+		assertNull(snapshotApi.getInstanceFromEventsFold(null));
+	}
+	
+//	@Test
+//	public void getInstanceFromEventsFoldEventsFoldingTest1(){
+//		NewUserCreatedEvent newUserCreatedEvent = context.getBean(NewUserCreatedEvent.class);
+//		BackgammonUser backgammonUser1 = context.getBean(BackgammonUser.class);
+//		
+//		backgammonUser1.setUserName("UserName1");
+//		backgammonUser1.setPassword("password1");
+//		backgammonUser1.setEmail("email1");
+//		backgammonUser1.setFirstName("firstName1");
+//		backgammonUser1.setLastName("lastName1");
+//		backgammonUser1.setStatus(Status.CreatedAndLoggedIn);
+//		backgammonUser1.setUser_permissions(Arrays.asList("user"));
+//		
+//		newUserCreatedEvent.setBackgammonUser(backgammonUser1);
+//		newUserCreatedEvent.setClazz("NewUserCreatedEvent");
+//	}
 }
